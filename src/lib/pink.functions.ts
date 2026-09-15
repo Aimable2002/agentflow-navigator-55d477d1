@@ -54,7 +54,7 @@ async function callBackend(path: string, init: RequestInit): Promise<ProxyResult
 
 /** POST /v1/chat — queues an agent run and returns { job_id, status, plan }. */
 export const startChatFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { prompt: string; messages?: unknown[]; connectors?: string[] }) => input)
+  .inputValidator((input: { prompt: string; messages?: unknown[]; connectors?: string[]; mode?: "chat" | "agent" }) => input)
   .handler(({ data }) =>
     callBackend("/v1/chat", {
       method: "POST",
@@ -62,6 +62,7 @@ export const startChatFn = createServerFn({ method: "POST" })
         prompt: data.prompt,
         messages: data.messages ?? [],
         connectors: data.connectors ?? [],
+        mode: data.mode ?? "chat",
       }),
     }),
   );

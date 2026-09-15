@@ -4,6 +4,7 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import { InlineTaskCard, TierBadge } from "@/components/pink/primitives";
 import { useConnectors, useConversation, useJobWatcher, useSendMessage, useTasks } from "@/lib/queries";
 import { isApiConfigured } from "@/lib/api";
+import type { ChatMode } from "@/lib/api";
 import { shortId, taskDuration } from "@/lib/format";
 import type { Message } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -99,6 +100,7 @@ function Chat() {
   const { conversation: conversationId } = Route.useSearch();
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
+  const [modeOverride, setModeOverride] = useState<ChatMode | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   const { data } = useConversation(conversationId ?? "");
@@ -109,6 +111,7 @@ function Chat() {
 
   const messages = data?.messages ?? [];
   const connected = connectors.filter((c) => c.connected);
+  const mode: ChatMode = modeOverride ?? (connected.length > 0 ? "agent" : "chat");
   const running = tasks.filter((t) => t.status === "running" || t.status === "queued");
 
   useEffect(() => {
@@ -124,6 +127,7 @@ function Chat() {
         prompt,
         conversationId: conversationId ?? null,
         connectors: connected.map((c) => c.id),
+        mode,
       });
       if (!conversationId) {
         void navigate({ to: "/app/chat", search: { conversation: result.conversationId }, replace: true });
@@ -244,6 +248,22 @@ function Chat() {
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-mute focus:outline-none"
             />
             <div className="flex items-center gap-2 pt-2">
+              <div className="flex rounded-md border border-line p-0.5" aria-label="Request mode">
+                {(["chat", "agent"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setModeOverride(option)}
+                    aria-pressed={mode === option}
+                    className={cn(
+                      "rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] transition-colors",
+                      mode === option ? "bg-pink text-ink" : "text-mute hover:text-white",
+                    )}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">Tier: auto</span>
               <div className="flex flex-wrap gap-1">
                 {connected.map((c) => (

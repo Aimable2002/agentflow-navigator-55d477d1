@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getJob, startChat, type AgentStep } from "@/lib/api";
+import { getJob, startChat, type AgentStep, type ChatMode } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -268,7 +268,12 @@ export function useSendMessage() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { prompt: string; conversationId?: string | null; connectors: string[] }) => {
+    mutationFn: async (input: {
+      prompt: string;
+      conversationId?: string | null;
+      connectors: string[];
+      mode: ChatMode;
+    }) => {
       if (!user) throw new Error("You need to be signed in.");
       let conversationId = input.conversationId ?? null;
 
@@ -310,6 +315,7 @@ export function useSendMessage() {
           content: m.content,
         })),
         connectors: input.connectors,
+        mode: input.mode,
       });
 
       const task = assertOk(
@@ -321,6 +327,7 @@ export function useSendMessage() {
             job_id: queued.job_id,
             title: input.prompt.slice(0, 70),
             connector_id: input.connectors[0] ?? null,
+            mode: input.mode,
             tier: typeof queued.plan === "object" && queued.plan?.tier ? queued.plan.tier : "medium",
             status: "running",
             progress: 10,
@@ -361,7 +368,7 @@ export function useJobWatcher() {
           if (job.status === "pending" || cancelled) continue;
 
           if (job.status === "done") {
-            const content = job.data?.content ?? job.data?.output ?? "The agent finished but returned no text.";
+            const content = job.data?.final_message ?? "The agent finished but returned no text.";
             const steps: AgentStep[] = job.data?.steps ?? [];
             const tier: Tier = job.data?.tier ?? "medium";
             await supabase.from("messages").insert({

@@ -1,5 +1,7 @@
 export type Tier = "small" | "medium" | "best";
 
+export type ChatMode = "chat" | "agent";
+
 export type TaskStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
 
 export type LogLevel = "info" | "warn" | "error" | "done";
@@ -109,6 +111,7 @@ export type Task = {
   job_id: string | null;
   title: string;
   connector_id: ConnectorId | null;
+  mode: ChatMode;
   tier: Tier;
   status: TaskStatus;
   progress: number;

@@ -38,6 +38,7 @@ function unwrap<T>(result: ProxyResult): T {
 }
 
 export type ChatPlan = { tier?: "small" | "medium" | "best"; difficulty?: number; reason?: string };
+export type ChatMode = "chat" | "agent";
 
 export type StartChatResponse = {
   job_id: string;
@@ -50,8 +51,7 @@ export type AgentStep = { connector: string; action: string; detail?: string };
 export type JobStatusResponse = {
   status: "pending" | "done" | "failed" | string;
   data?: {
-    content?: string;
-    output?: string;
+    final_message?: string;
     tier?: "small" | "medium" | "best";
     steps?: AgentStep[];
   };
@@ -65,12 +65,14 @@ export async function startChat(input: {
   prompt: string;
   messages?: ApiHistoryMessage[];
   connectors?: string[];
+  mode: ChatMode;
 }) {
   const result = await startChatFn({
     data: {
       prompt: input.prompt,
       messages: input.messages ?? [],
       connectors: input.connectors ?? [],
+      mode: input.mode,
     },
   });
   return unwrap<StartChatResponse>(result as ProxyResult);
