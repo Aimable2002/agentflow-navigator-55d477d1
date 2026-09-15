@@ -11,7 +11,11 @@ import { getRequest } from "@tanstack/react-start/server";
 
 export const PINK_API_URL = ((import.meta.env["VITE_PINK_API_URL"] as string | undefined) ?? "").replace(/\/$/, "");
 
-type ProxyResult = { ok: true; status: number; body: unknown } | { ok: false; status: number; message: string };
+export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+
+type ProxyResult =
+  | { ok: true; status: number; body: Record<string, Json> | null }
+  | { ok: false; status: number; message: string };
 
 async function callBackend(path: string, init: RequestInit): Promise<ProxyResult> {
   if (!PINK_API_URL) {
@@ -45,7 +49,7 @@ async function callBackend(path: string, init: RequestInit): Promise<ProxyResult
     return { ok: false, status: response.status, message };
   }
 
-  return { ok: true, status: response.status, body: text ? JSON.parse(text) : null };
+  return { ok: true, status: response.status, body: text ? (JSON.parse(text) as Record<string, Json>) : null };
 }
 
 /** POST /v1/chat — queues an agent run and returns { job_id, status, plan }. */
