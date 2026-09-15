@@ -1,99 +1,189 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Copy, Trash2 } from "lucide-react";
-import { PageHeader } from "@/components/app/app-shell";
 import { Panel } from "@/components/pink/primitives";
-import { apiKeys } from "@/lib/mock";
+import { useApiKeys, useCreateApiKey, useProfile, useRevokeApiKey } from "@/lib/queries";
+import { relativeTime } from "@/lib/format";
 
 export const Route = createFileRoute("/app/settings/api-keys")({
   head: () => ({
     meta: [
       { title: "API keys | PINK workspace" },
-      { name: "description", content: "Create and revoke keys to drive the PINK agent programmatically." },
+      { name: "description", content: "Create, scope and revoke keys that call the PINK agent from your own code." },
       { property: "og:title", content: "PINK API keys" },
-      { property: "og:description", content: "Programmatic access with scoped, revocable keys." },
+      { property: "og:description", content: "Programmatic access to the agent, scoped and revocable." },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: ApiKeys,
 });
 
+const scopeOptions = [
+  { value: "chat:write", label: "chat:write — start conversations and tasks" },
+  { value: "tasks:read", label: "tasks:read — read task status and logs" },
+  { value: "usage:read", label: "usage:read — read usage and quota" },
+];
+
 function ApiKeys() {
+  const { data: keys = [], isLoading, error } = useApiKeys();
+  const { data: profile } = useProfile();
+  const create = useCreateApiKey();
+  const revoke = useRevokeApiKey();
+
+  const [label, setLabel] = useState("");
+  const [scope, setScope] = useState(scopeOptions[0]!.value);
+  const [secret, setSecret] = useState<string | null>(null);
+
+  const onFreePlan = (profile?.plan ?? "free") === "free";
+
+  const submit = () => {
+    if (!label.trim()) {
+      toast.error("Give the key a name so you can recognise it later.");
+      return;
+    }
+    create.mutate(
+      { label: label.trim(), scope },
+      {
+        onSuccess: (value) => {
+          setSecret(value);
+          setLabel("");
+          toast.success("Key created — copy it now, it is shown once.");
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Could not create the key."),
+      },
+    );
+  };
+
   return (
-    <>
-      <PageHeader
-        title="API keys"
-        copy="For driving the agent from your own code or CI. Keys are shown once at creation."
-        actions={
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">API keys</h1>
+        <p className="mt-2 max-w-2xl text-sm text-fog">
+          Keys let your own code call the agent. Each key carries one scope, and we only ever store its hash — copy the
+          secret when it is created.
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-white/90">
+          {error.message}
+        </p>
+      )}
+
+      {onFreePlan && (
+        <p className="rounded-md border border-amber/40 bg-amber/10 px-4 py-3 text-sm text-white/90">
+          API keys are a paid-plan feature. You can create one here, but requests made with it are rejected while your
+          account is on the free plan.
+        </p>
+      )}
+
+      {secret && (
+        <Panel className="border-mint/40">
+          <h2 className="font-display text-lg font-semibold">Your new key</h2>
+          <p className="mt-1 text-sm text-fog">This is the only time it will be shown.</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded-md border border-line bg-ink px-3 py-2 font-mono text-xs text-mint">
+              {secret}
+            </code>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(secret);
+                toast.success("Copied to clipboard");
+              }}
+              className="rounded-md border border-line px-3 py-2 text-sm text-white hover:bg-ink2"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => setSecret(null)}
+              className="rounded-md bg-pink px-3 py-2 text-sm font-medium text-ink hover:bg-white"
+            >
+              I've saved it
+            </button>
+          </div>
+        </Panel>
+      )}
+
+      <Panel>
+        <h2 className="font-display text-lg font-semibold">Create a key</h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label className="block text-sm">
+            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Name</span>
+            <input
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="production backend"
+              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2 font-mono text-xs text-white outline-none focus:border-pink"
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Scope</span>
+            <select
+              value={scope}
+              onChange={(e) => setScope(e.target.value)}
+              className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2 font-mono text-xs text-white outline-none focus:border-pink"
+            >
+              {scopeOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
-            onClick={() => toast.success("New key created", { description: "Copy it now — it won't be shown again." })}
-            className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-white"
+            onClick={submit}
+            disabled={create.isPending}
+            className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50"
           >
-            Create key
+            {create.isPending ? "Creating…" : "Create key"}
           </button>
-        }
-      />
+        </div>
+      </Panel>
 
-      <div className="grid gap-4 p-4 lg:max-w-4xl lg:p-8">
-        <Panel>
-          <h2 className="font-display text-lg font-semibold">Your keys</h2>
-          <p className="mt-2 font-mono text-[11px] text-mute">Free plan allows 0 keys · Pro allows 3 · Scale unlimited</p>
-          <ul className="mt-4 divide-y divide-line">
-            {apiKeys.map((k) => (
-              <li key={k.id} className="flex flex-wrap items-center gap-4 py-4">
-                <div className="min-w-0">
-                  <p className="text-sm text-white">{k.label}</p>
-                  <p className="font-mono text-[11px] text-mute">
-                    {k.prefix} · {k.scope} · created {k.created} · last used {k.lastUsed}
-                  </p>
-                </div>
-                <div className="ml-auto flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toast.success("Key prefix copied")}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-2 font-mono text-[11px] text-fog hover:text-white"
-                  >
-                    <Copy className="size-3.5" /> Copy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => toast("Key revoked", { description: "Requests using it will now fail." })}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-destructive/40 px-3 py-2 font-mono text-[11px] text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="size-3.5" /> Revoke
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-
-        <Panel>
-          <h2 className="font-display text-lg font-semibold">Start a run</h2>
-          <pre className="mt-4 overflow-x-auto rounded-md border border-line bg-ink p-4 font-mono text-xs text-fog">{`curl https://api.pink.dev/v1/runs \\
-  -H "Authorization: Bearer pk_live_…" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "prompt": "Backtest the momentum EA on EURUSD M15",
-    "tier": "auto",
-    "connectors": ["mt5", "linear"]
-  }'`}</pre>
-          <p className="mt-3 text-sm text-fog">
-            The response returns a task id immediately. Poll it or register a webhook to hear about completion.
-          </p>
-          <Link to="/docs/$slug" params={{ slug: "api-access" }} className="mt-3 inline-block font-mono text-xs text-pink hover:underline">
-            API documentation →
-          </Link>
-        </Panel>
-
-        <Panel accent>
-          <h2 className="font-display text-lg font-semibold">Keep keys server-side</h2>
-          <p className="mt-2 text-sm text-white/90">
-            A key can start runs against every connector you have authorised. Never ship one in browser code, and scope
-            it to read-only where that is enough.
-          </p>
-        </Panel>
+      <div className="overflow-hidden rounded-lg border border-line">
+        <div className="grid grid-cols-[1fr_auto] border-b border-line bg-panel px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+          <span>Key</span>
+          <span>Status</span>
+        </div>
+        <ul className="divide-y divide-line">
+          {isLoading && <li className="px-5 py-6 text-sm text-mute">Loading keys…</li>}
+          {!isLoading && keys.length === 0 && (
+            <li className="px-5 py-6 text-sm text-mute">No keys yet.</li>
+          )}
+          {keys.map((k) => (
+            <li key={k.id} className="grid grid-cols-[1fr_auto] items-center gap-4 px-5 py-4">
+              <div className="min-w-0">
+                <p className="font-display text-base font-semibold text-white">{k.label}</p>
+                <p className="mt-1 truncate font-mono text-[11px] text-fog">{k.prefix}••••••••</p>
+                <p className="mt-1 font-mono text-[10px] text-mute">
+                  {k.scope} · created {relativeTime(k.created_at)} · last used{" "}
+                  {k.last_used_at ? relativeTime(k.last_used_at) : "never"}
+                </p>
+              </div>
+              {k.revoked_at ? (
+                <span className="font-mono text-[11px] text-mute">revoked {relativeTime(k.revoked_at)}</span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={revoke.isPending}
+                  onClick={() =>
+                    revoke.mutate(k.id, {
+                      onSuccess: () => toast.success(`${k.label} revoked`),
+                      onError: (e) => toast.error(e instanceof Error ? e.message : "Could not revoke the key."),
+                    })
+                  }
+                  className="rounded-md border border-line px-3 py-2 text-sm text-white hover:bg-panel disabled:opacity-50"
+                >
+                  Revoke
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
-    </>
+    </div>
   );
 }
