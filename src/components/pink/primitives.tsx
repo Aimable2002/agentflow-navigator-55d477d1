@@ -176,7 +176,7 @@ export function InlineTaskCard({
     >
       <div className="flex items-center gap-2">
         <span className={cn("size-2 rounded-full", running ? "bg-violet pulse-dot" : status === "failed" ? "bg-destructive" : "bg-mint")} />
-        <span className="text-xs font-medium text-white">{title}</span>
+        <span className="text-xs font-medium text-white">{status === "failed" ? "Task failed" : title}</span>
         <TierBadge tier={tier} className="ml-auto" />
       </div>
       <div className="mt-2.5">

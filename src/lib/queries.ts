@@ -392,19 +392,16 @@ export function useJobWatcher() {
               .eq("id", entry.taskId);
             await logTask(entry.taskId, "done", "Agent run completed.");
           } else {
-            const message = job.error ?? "The agent run failed.";
-            await supabase.from("messages").insert({
-              conversation_id: entry.conversationId,
-              user_id: user.id,
-              role: "system",
-              content: message,
-              task_id: entry.taskId,
-            });
+            const detail = job.error ?? "The agent run failed.";
             await supabase
               .from("tasks")
-              .update({ status: "failed", error: message, finished_at: new Date().toISOString() })
+              .update({
+                status: "failed",
+                error: "Task failed. Open the task to review the execution log.",
+                finished_at: new Date().toISOString(),
+              })
               .eq("id", entry.taskId);
-            await logTask(entry.taskId, "error", message);
+            await logTask(entry.taskId, "error", detail);
           }
 
           setWatching((w) => w.filter((x) => x.jobId !== entry.jobId));

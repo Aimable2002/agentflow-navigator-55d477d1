@@ -1,8 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Loader2 } from "lucide-react";
+import "highlight.js/styles/github-dark.css";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkGfm from "remark-gfm";
 import { InlineTaskCard, TierBadge } from "@/components/pink/primitives";
-import { useConnectors, useConversation, useJobWatcher, useSendMessage, useTasks } from "@/lib/queries";
+import {
+  useConnectors,
+  useConversation,
+  useJobWatcher,
+  useSendMessage,
+  useTasks,
+} from "@/lib/queries";
 import { isApiConfigured } from "@/lib/api";
 import type { ChatMode } from "@/lib/api";
 import { shortId, taskDuration } from "@/lib/format";
@@ -16,10 +26,14 @@ export const Route = createFileRoute("/app/chat")({
       { title: "Agent chat | PINK workspace" },
       {
         name: "description",
-        content: "Talk to the PINK agent, watch it call your connected tools and follow background tasks inline.",
+        content:
+          "Talk to the PINK agent, watch it call your connected tools and follow background tasks inline.",
       },
       { property: "og:title", content: "PINK agent chat" },
-      { property: "og:description", content: "One surface for conversation, tool actions and background execution." },
+      {
+        property: "og:description",
+        content: "One surface for conversation, tool actions and background execution.",
+      },
     ],
   }),
   validateSearch: (search: Record<string, unknown>): { conversation?: string } => {
@@ -38,6 +52,67 @@ const suggestions = [
 
 type TaskMeta = { title: string; status: string; progress: number; meta: string } | undefined;
 
+const markdownComponents = {
+  h1: ({ children }: { children?: React.ReactNode }) => (
+    <h1 className="font-display text-xl font-semibold text-white">{children}</h1>
+  ),
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2 className="font-display text-lg font-semibold text-white">{children}</h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 className="font-display text-base font-semibold text-white">{children}</h3>
+  ),
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p className="leading-relaxed text-white/90">{children}</p>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul className="list-disc space-y-1 pl-5 text-white/90">{children}</ul>
+  ),
+  ol: ({ children }: { children?: React.ReactNode }) => (
+    <ol className="list-decimal space-y-1 pl-5 text-white/90">{children}</ol>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => <li className="pl-1">{children}</li>,
+  blockquote: ({ children }: { children?: React.ReactNode }) => (
+    <blockquote className="border-l-2 border-pink/60 pl-4 text-fog">{children}</blockquote>
+  ),
+  a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="text-pink underline decoration-pink/40 underline-offset-2 hover:text-white"
+    >
+      {children}
+    </a>
+  ),
+  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+    <code
+      className={cn("rounded bg-panel px-1.5 py-0.5 font-mono text-[0.9em] text-mint", className)}
+    >
+      {children}
+    </code>
+  ),
+  pre: ({ children }: { children?: React.ReactNode }) => (
+    <pre className="overflow-x-auto rounded-md border border-line bg-ink p-4 font-mono text-xs leading-relaxed text-fog">
+      {children}
+    </pre>
+  ),
+  table: ({ children }: { children?: React.ReactNode }) => (
+    <div className="overflow-x-auto rounded-md border border-line">
+      <table className="w-full min-w-max border-collapse text-left text-xs">{children}</table>
+    </div>
+  ),
+  th: ({ children }: { children?: React.ReactNode }) => (
+    <th className="border-b border-line bg-panel px-3 py-2 font-mono font-medium text-fog">
+      {children}
+    </th>
+  ),
+  td: ({ children }: { children?: React.ReactNode }) => (
+    <td className="border-b border-line px-3 py-2 text-white/80">{children}</td>
+  ),
+  hr: () => <hr className="border-line" />,
+};
+
 function Bubble({ m, taskMeta }: { m: Message; taskMeta: TaskMeta }) {
   if (m.role === "user") {
     return (
@@ -45,7 +120,9 @@ function Bubble({ m, taskMeta }: { m: Message; taskMeta: TaskMeta }) {
         <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-md bg-panel font-mono text-[11px] text-fog">
           YOU
         </span>
-        <p className="max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-white/90">{m.content}</p>
+        <p className="max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-white/90">
+          {m.content}
+        </p>
       </div>
     );
   }
@@ -67,14 +144,27 @@ function Bubble({ m, taskMeta }: { m: Message; taskMeta: TaskMeta }) {
         {m.tier && (
           <div className="flex items-center gap-2">
             <TierBadge tier={m.tier} />
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">routed automatically</span>
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+              routed automatically
+            </span>
           </div>
         )}
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">{m.content}</p>
+        <div className="space-y-3 text-sm [&_strong]:font-semibold [&_strong]:text-white">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+            components={markdownComponents}
+          >
+            {m.content}
+          </ReactMarkdown>
+        </div>
         {m.steps?.length > 0 && (
           <div className="space-y-2">
             {m.steps.map((s, i) => (
-              <div key={`${s.connector}${s.action}${i}`} className="flex items-center gap-2 font-mono text-xs text-fog">
+              <div
+                key={`${s.connector}${s.action}${i}`}
+                className="flex items-center gap-2 font-mono text-xs text-fog"
+              >
                 <span className="size-1.5 rounded-full bg-mint" /> {s.connector} · {s.action}{" "}
                 <span className="text-mute">{s.detail}</span>
               </div>
@@ -130,9 +220,17 @@ function Chat() {
         mode,
       });
       if (!conversationId) {
-        void navigate({ to: "/app/chat", search: { conversation: result.conversationId }, replace: true });
+        void navigate({
+          to: "/app/chat",
+          search: { conversation: result.conversationId },
+          replace: true,
+        });
       }
-      watch({ jobId: result.task.job_id!, taskId: result.task.id, conversationId: result.conversationId });
+      watch({
+        jobId: result.task.job_id!,
+        taskId: result.task.id,
+        conversationId: result.conversationId,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not reach the agent.");
     }
@@ -147,7 +245,9 @@ function Chat() {
           </h1>
           <p className="font-mono text-[11px] text-mute">
             {conversationId ? `${shortId(conversationId, "CNV")} · ` : ""}
-            {connected.length ? `connectors in scope: ${connected.map((c) => c.name).join(", ")}` : "no tools connected yet"}
+            {connected.length
+              ? `connectors in scope: ${connected.map((c) => c.name).join(", ")}`
+              : "no tools connected yet"}
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -176,10 +276,12 @@ function Chat() {
         <div className="mx-auto max-w-3xl space-y-6">
           {messages.length === 0 && (
             <div className="rounded-lg border border-line bg-panel p-6">
-              <h2 className="font-display text-lg font-semibold">Describe an outcome, not a prompt.</h2>
+              <h2 className="font-display text-lg font-semibold">
+                Describe an outcome, not a prompt.
+              </h2>
               <p className="mt-2 text-sm text-fog">
-                The agent grades the request, picks a model tier and calls the tools you've connected. Long jobs move to
-                background tasks and report back here.
+                The agent grades the request, picks a model tier and calls the tools you've
+                connected. Long jobs move to background tasks and report back here.
               </p>
             </div>
           )}
@@ -264,15 +366,23 @@ function Chat() {
                   </button>
                 ))}
               </div>
-              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">Tier: auto</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+                Tier: auto
+              </span>
               <div className="flex flex-wrap gap-1">
                 {connected.map((c) => (
-                  <span key={c.id} className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-fog">
+                  <span
+                    key={c.id}
+                    className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-fog"
+                  >
                     {c.name}
                   </span>
                 ))}
                 {connected.length === 0 && (
-                  <Link to="/app/connectors" className="font-mono text-[10px] text-pink hover:underline">
+                  <Link
+                    to="/app/connectors"
+                    className="font-mono text-[10px] text-pink hover:underline"
+                  >
                     connect a tool →
                   </Link>
                 )}
@@ -286,7 +396,11 @@ function Chat() {
                   (!draft.trim() || sendMessage.isPending) && "opacity-50",
                 )}
               >
-                {sendMessage.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+                {sendMessage.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <ArrowUp className="size-4" />
+                )}
               </button>
             </div>
           </form>
