@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
-import { ActivityBars, ConnectorChip, Meter, Panel, TierBadge } from "@/components/pink/primitives";
+import { ConnectorChip, Meter, Panel, TierBadge } from "@/components/pink/primitives";
 import { tierMeta } from "@/lib/content";
 import { useConnectors, useProfile, useUsageEvents } from "@/lib/queries";
 import { money, shortDate } from "@/lib/format";
