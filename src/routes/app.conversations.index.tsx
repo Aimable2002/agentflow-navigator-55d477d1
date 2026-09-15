@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
 import { ConnectorChip, TierBadge } from "@/components/pink/primitives";
-import { conversations } from "@/lib/mock";
+import { useConversations } from "@/lib/queries";
+import { relativeTime, shortId } from "@/lib/format";
 
 export const Route = createFileRoute("/app/conversations/")({
   head: () => ({
@@ -16,6 +17,8 @@ export const Route = createFileRoute("/app/conversations/")({
 });
 
 function Conversations() {
+  const { data: conversations = [], isLoading, error } = useConversations();
+
   return (
     <>
       <PageHeader
@@ -31,12 +34,26 @@ function Conversations() {
         }
       />
       <div className="p-4 lg:p-8">
+        {error && (
+          <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-white/90">
+            {error.message}
+          </p>
+        )}
         <div className="overflow-hidden rounded-lg border border-line">
           <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-line bg-panel px-5 py-3 font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
             <span>Session</span>
             <span>Updated</span>
           </div>
           <ul className="divide-y divide-line">
+            {isLoading && <li className="px-5 py-6 text-sm text-mute">Loading your sessions…</li>}
+            {!isLoading && conversations.length === 0 && (
+              <li className="px-5 py-6 text-sm text-mute">
+                No conversations yet.{" "}
+                <Link to="/app/chat" className="text-pink hover:underline">
+                  Start the first one →
+                </Link>
+              </li>
+            )}
             {conversations.map((c) => (
               <li key={c.id}>
                 <Link
@@ -47,18 +64,20 @@ function Conversations() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-display text-base font-semibold text-white">{c.title}</h2>
-                      <TierBadge tier={c.tierMix} />
+                      {c.tier_mix && <TierBadge tier={c.tier_mix} />}
                     </div>
-                    <p className="mt-1 truncate text-sm text-fog">{c.preview}</p>
+                    {c.preview && <p className="mt-1 truncate text-sm text-fog">{c.preview}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-[10px] text-mute">{c.id}</span>
-                      {c.connectorsUsed.map((id) => (
+                      <span className="font-mono text-[10px] text-mute">{shortId(c.id, "CNV")}</span>
+                      {(c.connectors_used ?? []).map((id) => (
                         <ConnectorChip key={id} id={id} />
                       ))}
-                      <span className="font-mono text-[10px] text-mute">{c.messages} messages</span>
+                      <span className="font-mono text-[10px] text-mute">{c.message_count} messages</span>
                     </div>
                   </div>
-                  <span className="whitespace-nowrap font-mono text-[11px] text-mute">{c.updated}</span>
+                  <span className="whitespace-nowrap font-mono text-[11px] text-mute">
+                    {relativeTime(c.updated_at)}
+                  </span>
                 </Link>
               </li>
             ))}

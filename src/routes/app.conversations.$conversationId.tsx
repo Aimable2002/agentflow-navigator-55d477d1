@@ -1,40 +1,57 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { ConnectorChip, InlineTaskCard, Panel, TierBadge } from "@/components/pink/primitives";
-import { conversationById, tasks } from "@/lib/mock";
+import { useConversation, useTasks } from "@/lib/queries";
+import { relativeTime, shortId, taskDuration } from "@/lib/format";
 
 export const Route = createFileRoute("/app/conversations/$conversationId")({
-  loader: ({ params }) => {
-    const conversation = conversationById(params.conversationId);
-    if (!conversation) throw notFound();
-    return { conversation };
-  },
-  head: ({ loaderData }) => {
-    if (!loaderData)
-      return { meta: [{ title: "Conversation not found | PINK" }, { name: "robots", content: "noindex" }] };
-    return {
-      meta: [
-        { title: `${loaderData.conversation.title} | PINK conversation` },
-        { name: "description", content: loaderData.conversation.preview },
-        { property: "og:title", content: `${loaderData.conversation.title} — PINK` },
-        { property: "og:description", content: loaderData.conversation.preview },
-      ],
-    };
-  },
-  notFoundComponent: () => (
-    <div className="p-8">
-      <h1 className="font-display text-2xl font-semibold">Conversation not found</h1>
-      <p className="mt-2 text-fog">It may have been deleted or fallen outside your plan's history window.</p>
-      <Link to="/app/conversations" className="mt-4 inline-block font-mono text-sm text-pink hover:underline">
-        ← Back to history
-      </Link>
-    </div>
-  ),
+  head: () => ({
+    meta: [
+      { title: "Conversation | PINK workspace" },
+      { name: "description", content: "The full thread, the tools the agent called and the tasks it started." },
+      { property: "og:title", content: "PINK conversation" },
+      { property: "og:description", content: "Read a past agent session end to end." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: ConversationDetail,
 });
 
 function ConversationDetail() {
-  const { conversation } = Route.useLoaderData();
-  const linked = tasks.filter((t) => t.conversationId === conversation.id);
+  const { conversationId } = Route.useParams();
+  const { data, isLoading, error } = useConversation(conversationId);
+  const { data: tasks = [] } = useTasks();
+
+  const conversation = data?.conversation ?? null;
+  const messages = data?.messages ?? [];
+  const linked = tasks.filter((t) => t.conversation_id === conversationId);
+
+  if (isLoading) {
+    return <div className="p-8 text-sm text-mute">Loading conversation…</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <h1 className="font-display text-2xl font-semibold">Conversation could not be loaded</h1>
+        <p className="mt-2 text-fog">{error.message}</p>
+        <Link to="/app/conversations" className="mt-4 inline-block font-mono text-sm text-pink hover:underline">
+          ← Back to history
+        </Link>
+      </div>
+    );
+  }
+
+  if (!conversation) {
+    return (
+      <div className="p-8">
+        <h1 className="font-display text-2xl font-semibold">Conversation not found</h1>
+        <p className="mt-2 text-fog">It may have been deleted, or it belongs to another account.</p>
+        <Link to="/app/conversations" className="mt-4 inline-block font-mono text-sm text-pink hover:underline">
+          ← Back to history
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 lg:p-8">
@@ -44,12 +61,13 @@ function ConversationDetail() {
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <h1 className="font-display text-2xl font-semibold tracking-tight">{conversation.title}</h1>
-        <TierBadge tier={conversation.tierMix} />
+        {conversation.tier_mix && <TierBadge tier={conversation.tier_mix} />}
         <span className="font-mono text-[11px] text-mute">
-          {conversation.id} · {conversation.updated} · {conversation.messages} messages
+          {shortId(conversation.id, "CNV")} · {relativeTime(conversation.updated_at)} · {messages.length} messages
         </span>
         <Link
           to="/app/chat"
+          search={{ conversation: conversation.id }}
           className="ml-auto rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-white"
         >
           Continue in chat
@@ -57,14 +75,15 @@ function ConversationDetail() {
       </div>
 
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {conversation.connectorsUsed.map((id) => (
+        {(conversation.connectors_used ?? []).map((id) => (
           <ConnectorChip key={id} id={id} />
         ))}
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          {conversation.thread.map((m) => (
+          {messages.length === 0 && <p className="text-sm text-mute">This conversation has no messages yet.</p>}
+          {messages.map((m) => (
             <div key={m.id} className="flex gap-3">
               <span
                 className={
@@ -77,9 +96,12 @@ function ConversationDetail() {
               </span>
               <div className="min-w-0 space-y-3">
                 {m.tier && <TierBadge tier={m.tier} />}
-                <p className="text-sm leading-relaxed text-white/90">{m.text}</p>
-                {m.steps?.map((s) => (
-                  <div key={`${s.connector}${s.action}`} className="flex items-center gap-2 font-mono text-xs text-fog">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">{m.content}</p>
+                {(m.steps ?? []).map((s, i) => (
+                  <div
+                    key={`${s.connector}${s.action}${i}`}
+                    className="flex items-center gap-2 font-mono text-xs text-fog"
+                  >
                     <span className="size-1.5 rounded-full bg-mint" /> {s.connector} · {s.action}{" "}
                     <span className="text-mute">{s.detail}</span>
                   </div>
@@ -102,7 +124,7 @@ function ConversationDetail() {
                   tier={t.tier}
                   status={t.status}
                   progress={t.progress}
-                  meta={`${t.id} · ${t.duration}`}
+                  meta={`${shortId(t.id)} · ${taskDuration(t)}`}
                 />
               ))}
             </div>
@@ -112,19 +134,23 @@ function ConversationDetail() {
             <dl className="mt-4 space-y-2 font-mono text-xs text-fog">
               <div className="flex justify-between">
                 <dt className="text-mute">Dominant tier</dt>
-                <dd>{conversation.tierMix}</dd>
+                <dd>{conversation.tier_mix ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-mute">Connectors</dt>
-                <dd>{conversation.connectorsUsed.length}</dd>
+                <dd>{(conversation.connectors_used ?? []).length}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-mute">Tasks spawned</dt>
                 <dd>{linked.length}</dd>
               </div>
               <div className="flex justify-between">
+                <dt className="text-mute">Started</dt>
+                <dd>{relativeTime(conversation.created_at)}</dd>
+              </div>
+              <div className="flex justify-between">
                 <dt className="text-mute">Last activity</dt>
-                <dd>{conversation.updated}</dd>
+                <dd>{relativeTime(conversation.updated_at)}</dd>
               </div>
             </dl>
           </Panel>
