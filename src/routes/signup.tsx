@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { AuthLayout, Field, inputClass, submitClass } from "@/components/auth/auth-layout";
+import { signUpWithEmail } from "@/lib/auth";
 
 export const Route = createFileRoute("/signup")({
   head: () => ({
@@ -18,6 +20,30 @@ export const Route = createFileRoute("/signup")({
 
 function SignUp() {
   const navigate = useNavigate();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const { session } = await signUpWithEmail(email.trim(), password, fullName.trim() || undefined);
+      // Email verification is disabled for now: accounts are confirmed on
+      // creation, so we go straight into the workspace instead of /verify-email.
+      // navigate({ to: "/verify-email" });
+      if (session) navigate({ to: "/onboarding" });
+      else navigate({ to: "/login" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create the account.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <AuthLayout
       eyebrow="Create account"
@@ -32,32 +58,48 @@ function SignUp() {
         </>
       }
     >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate({ to: "/verify-email" });
-        }}
-      >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <Field label="Full name">
-          <input required placeholder="Avery Lane" className={inputClass} />
+          <input
+            required
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Avery Lane"
+            className={inputClass}
+          />
         </Field>
         <Field label="Work email">
-          <input required type="email" placeholder="avery@company.com" className={inputClass} />
+          <input
+            required
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="avery@company.com"
+            className={inputClass}
+          />
         </Field>
         <Field label="Password" hint="min 10 characters">
-          <input required type="password" minLength={10} placeholder="••••••••••" className={inputClass} />
+          <input
+            required
+            type="password"
+            autoComplete="new-password"
+            minLength={10}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••••"
+            className={inputClass}
+          />
         </Field>
-        <button type="submit" className={submitClass}>
-          Create account
+        {error && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 font-mono text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={busy} className={`${submitClass} disabled:opacity-60`}>
+          {busy ? "Creating account…" : "Create account"}
         </button>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/onboarding" })}
-          className="w-full rounded-md border border-line px-4 py-3 text-sm text-white transition-colors hover:bg-panel"
-        >
-          Continue with Google
-        </button>
+        {/* Google sign-in stays off until the provider is enabled on the project. */}
       </form>
     </AuthLayout>
   );

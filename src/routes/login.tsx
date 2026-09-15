@@ -1,5 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { AuthLayout, Field, inputClass, submitClass } from "@/components/auth/auth-layout";
+import { signInWithEmail } from "@/lib/auth";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -15,6 +17,25 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      await signInWithEmail(email.trim(), password);
+      navigate({ to: "/app" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sign in.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <AuthLayout
       eyebrow="Sign in"
@@ -29,15 +50,17 @@ function Login() {
         </>
       }
     >
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          navigate({ to: "/app" });
-        }}
-      >
+      <form className="space-y-4" onSubmit={onSubmit}>
         <Field label="Email">
-          <input required type="email" placeholder="avery@company.com" className={inputClass} />
+          <input
+            required
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="avery@company.com"
+            className={inputClass}
+          />
         </Field>
         <Field
           label="Password"
@@ -47,18 +70,25 @@ function Login() {
             </Link>
           }
         >
-          <input required type="password" placeholder="••••••••••" className={inputClass} />
+          <input
+            required
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••••"
+            className={inputClass}
+          />
         </Field>
-        <button type="submit" className={submitClass}>
-          Sign in
+        {error && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 p-3 font-mono text-xs text-destructive">
+            {error}
+          </p>
+        )}
+        <button type="submit" disabled={busy} className={`${submitClass} disabled:opacity-60`}>
+          {busy ? "Signing in…" : "Sign in"}
         </button>
-        <button
-          type="button"
-          onClick={() => navigate({ to: "/app" })}
-          className="w-full rounded-md border border-line px-4 py-3 text-sm text-white transition-colors hover:bg-panel"
-        >
-          Continue with Google
-        </button>
+        {/* Google sign-in stays off until the provider is enabled on the project. */}
       </form>
     </AuthLayout>
   );

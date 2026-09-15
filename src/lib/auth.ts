@@ -33,15 +33,18 @@ export function initials(user: User | null, fullName?: string | null) {
 }
 
 export async function signUpWithEmail(email: string, password: string, fullName?: string) {
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      // Email confirmation is disabled on the project for now, so this
+      // redirect is unused; it is kept for when verification is switched on.
       emailRedirectTo: `${window.location.origin}/app`,
       ...(fullName ? { data: { full_name: fullName } } : {}),
     },
   });
   if (error) throw error;
+  return { session: data.session, user: data.user };
 }
 
 export async function signInWithEmail(email: string, password: string) {
