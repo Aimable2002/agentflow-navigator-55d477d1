@@ -122,8 +122,23 @@ function Usage() {
               last 14 days · peak {peak.value.toLocaleString()} on {shortDate(peak.day)}
             </span>
           </div>
-          <div className="mt-5">
-            <ActivityBars values={series.map((s) => s.value)} />
+          <div className="mt-5 flex h-40 items-end gap-1.5">
+            {series.map((s) => {
+              const max = Math.max(1, ...series.map((x) => x.value));
+              return (
+                <div key={s.day} className="group flex flex-1 flex-col items-center gap-2">
+                  <span className="font-mono text-[10px] text-mute opacity-0 transition-opacity group-hover:opacity-100">
+                    {s.value}
+                  </span>
+                  <span
+                    className="w-full rounded-sm bg-violet/70 transition-colors group-hover:bg-pink"
+                    style={{ height: `${Math.max(2, (s.value / max) * 100)}%` }}
+                    title={`${s.value} requests on ${s.day}`}
+                  />
+                  <span className="font-mono text-[9px] text-mute">{s.day.slice(8)}</span>
+                </div>
+              );
+            })}
           </div>
         </Panel>
 
