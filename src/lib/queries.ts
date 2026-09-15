@@ -25,6 +25,45 @@ import type {
   UsageEvent,
 } from "@/lib/types";
 
+const disabledConnectorIds = new Set(["mt5", "xero", "lovable"]);
+
+const frontendConnectorAdditions: CatalogConnector[] = [
+  {
+    id: "meta-ads",
+    name: "Meta Ads",
+    category: "Advertising",
+    tagline: "Campaigns, delivery and performance signals",
+    description:
+      "Connect Meta Ads to inspect campaign performance and keep Facebook and Instagram advertising work in one agent workflow.",
+    default_transport: "http",
+    default_server_url: "https://mcp.facebook.com/ads",
+    docs_url: null,
+    scopes: [
+      { key: "ads.read", label: "Read campaign data", detail: "Campaigns, ad sets, ads and delivery", granted: true },
+      { key: "insights.read", label: "Read performance insights", detail: "Spend, reach, clicks and conversions", granted: true },
+      { key: "ads.write", label: "Manage ads", detail: "Create or update campaigns and ads", granted: false },
+    ],
+    actions: ["Summarise campaign performance", "Compare Facebook and Instagram delivery", "Flag underperforming ad sets"],
+    sort_order: 60,
+  },
+  {
+    id: "whatsapp",
+    name: "WhatsApp",
+    category: "Messaging",
+    tagline: "Receive task and signal alerts on WhatsApp",
+    description:
+      "Connect a WhatsApp number for send-only alerts when tasks finish, fail, or a monitored signal clears its threshold.",
+    default_transport: "http",
+    default_server_url: null,
+    docs_url: null,
+    scopes: [
+      { key: "messages.send", label: "Send alerts", detail: "Deliver task and signal notifications", granted: true },
+    ],
+    actions: ["Send task completion alerts", "Send task failure alerts", "Send threshold-clearing signal alerts"],
+    sort_order: 80,
+  },
+];
+
 function assertOk<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return (res.data ?? null) as T;
@@ -60,9 +99,12 @@ export function useConnectorCatalog() {
   return useQuery({
     queryKey: ["connector-catalog"],
     queryFn: async () =>
-      (assertOk(
+      [
+        ...(assertOk(
         await supabase.from("connector_catalog").select("*").eq("is_active", true).order("sort_order"),
-      ) ?? []) as CatalogConnector[],
+        ) ?? []),
+        ...frontendConnectorAdditions,
+      ].filter((connector) => !disabledConnectorIds.has(connector.id)) as CatalogConnector[],
   });
 }
 

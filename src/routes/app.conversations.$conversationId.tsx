@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { MarkdownContent } from "@/components/app/markdown-content";
 import { ConnectorChip, InlineTaskCard, Panel, TierBadge } from "@/components/pink/primitives";
 import { useConversation, useTasks } from "@/lib/queries";
 import { relativeTime, shortId, taskDuration } from "@/lib/format";
@@ -96,7 +97,11 @@ function ConversationDetail() {
               </span>
               <div className="min-w-0 space-y-3">
                 {m.tier && <TierBadge tier={m.tier} />}
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">{m.content}</p>
+                {m.role === "agent" ? (
+                  <MarkdownContent content={m.content} />
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/90">{m.content}</p>
+                )}
                 {(m.steps ?? []).map((s, i) => (
                   <div
                     key={`${s.connector}${s.action}${i}`}

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
+import { MarkdownContent } from "@/components/app/markdown-content";
 import { ConnectorChip, Meter, Panel, StatusPill, TierBadge } from "@/components/pink/primitives";
 import { useTasks } from "@/lib/queries";
 import { relativeTime, shortId, taskDuration } from "@/lib/format";
@@ -79,7 +80,10 @@ function Tasks() {
                     <span className="font-mono text-[11px] text-mute">{taskDuration(t)}</span>
                   </div>
                   {(t.summary || t.error) && (
-                    <p className="mt-2 max-w-3xl text-sm text-fog">{t.error ?? t.summary}</p>
+                    <MarkdownContent
+                      content={t.error ?? t.summary ?? ""}
+                      className="mt-2 max-w-3xl text-fog"
+                    />
                   )}
                   {(t.status === "running" || t.status === "failed") && (
                     <div className="mt-3 max-w-md">

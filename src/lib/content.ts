@@ -45,15 +45,6 @@ export type MarketingConnector = {
 
 export const marketingConnectors: MarketingConnector[] = [
   {
-    id: "mt5",
-    name: "MT5",
-    category: "Trading",
-    tagline: "Write, backtest and iterate Expert Advisors",
-    description:
-      "The agent writes MQL5 Expert Advisors, runs them through the strategy tester, reads the report and iterates on the parameters until the numbers hold up.",
-    actions: ["Write an EA from a described edge", "Run a backtest over a date range", "Tune parameters and re-test", "Summarise drawdown and expectancy"],
-  },
-  {
     id: "github",
     name: "GitHub",
     category: "Code",
@@ -81,6 +72,15 @@ export const marketingConnectors: MarketingConnector[] = [
     actions: ["Notify on task completion", "Alert on failures", "Accept new instructions from chat", "Send daily digests"],
   },
   {
+    id: "meta-ads",
+    name: "Meta Ads",
+    category: "Advertising",
+    tagline: "Campaigns, delivery and performance signals",
+    description:
+      "Inspect Facebook and Instagram campaign performance and keep advertising work inside the agent workflow.",
+    actions: ["Summarise campaign performance", "Compare delivery", "Flag underperforming ad sets"],
+  },
+  {
     id: "hubspot",
     name: "HubSpot",
     category: "CRM",
@@ -88,15 +88,6 @@ export const marketingConnectors: MarketingConnector[] = [
     description:
       "Read the pipeline, flag deals that have gone quiet, clean up duplicate records and draft the follow-ups that are overdue.",
     actions: ["Summarise the pipeline", "Flag stalled deals", "Update contacts and deals", "Draft follow-ups"],
-  },
-  {
-    id: "xero",
-    name: "Xero",
-    category: "Accounting",
-    tagline: "Bookkeeping, invoices and reconciliation",
-    description:
-      "Reconcile a period, categorise what is obvious and hand back a short list of the transactions that genuinely need a human decision.",
-    actions: ["Reconcile a period", "Categorise transactions", "Chase unpaid invoices", "Produce a month-end summary"],
   },
   {
     id: "zapier",
@@ -108,25 +99,24 @@ export const marketingConnectors: MarketingConnector[] = [
     actions: ["Trigger a Zap", "Pass structured data through", "Read the run result", "Chain several apps in one job"],
   },
   {
-    id: "lovable",
-    name: "Lovable",
-    category: "Builds",
-    tagline: "Trigger and manage full-stack app builds",
+    id: "whatsapp",
+    name: "WhatsApp",
+    category: "Messaging",
+    tagline: "Receive task and signal alerts on WhatsApp",
     description:
-      "Describe an app or a change and the agent drives the build end to end, then reports back with what shipped and what needs review.",
-    actions: ["Start a full-stack build", "Apply a described change", "Read build status", "Summarise what shipped"],
+      "Connect a WhatsApp number for send-only alerts when tasks finish, fail, or a monitored signal clears its threshold.",
+    actions: ["Send task completion alerts", "Send task failure alerts", "Send signal alerts"],
   },
 ];
 
 export const connectorLabels: Record<string, string> = {
-  mt5: "MT5",
   github: "GitHub",
   linear: "Linear",
   telegram: "Telegram",
   hubspot: "HubSpot",
-  xero: "Xero",
   zapier: "Zapier",
-  lovable: "Lovable",
+  "meta-ads": "Meta Ads",
+  whatsapp: "WhatsApp",
 };
 
 export type Plan = {

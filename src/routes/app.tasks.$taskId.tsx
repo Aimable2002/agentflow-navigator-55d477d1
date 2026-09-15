@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { MarkdownContent } from "@/components/app/markdown-content";
 import { ConnectorChip, Meter, Panel, StatusPill, TierBadge } from "@/components/pink/primitives";
 import { useCancelTask, useTask } from "@/lib/queries";
 import { clockTime, relativeTime, shortId, taskDuration } from "@/lib/format";
@@ -97,7 +98,12 @@ function TaskDetail() {
         </div>
       </div>
 
-      {(t.summary || t.error) && <p className="mt-3 max-w-3xl text-sm text-fog">{t.error ?? t.summary}</p>}
+      {(t.summary || t.error) && (
+        <MarkdownContent
+          content={t.error ?? t.summary ?? ""}
+          className="mt-3 max-w-3xl text-fog"
+        />
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-4">
@@ -134,9 +140,7 @@ function TaskDetail() {
           {t.output && (
             <Panel>
               <h2 className="font-display text-lg font-semibold">Output</h2>
-              <pre className="mt-4 overflow-x-auto whitespace-pre-wrap rounded-md border border-line bg-ink p-4 font-mono text-xs text-fog">
-                {t.output}
-              </pre>
+              <MarkdownContent content={t.output} className="mt-4" />
             </Panel>
           )}
         </div>

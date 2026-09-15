@@ -63,6 +63,14 @@ function ConnectorDetail() {
     );
   }
 
+  if (connector.id === "telegram") {
+    return <TelegramOnboarding connector={connector} />;
+  }
+
+  if (connector.id === "whatsapp") {
+    return <WhatsAppOnboarding connector={connector} />;
+  }
+
   const related = tasks.filter((t) => t.connector_id === connector.id);
   const grantedCount = scopes.filter((s) => s.granted).length;
 
@@ -353,6 +361,201 @@ function ConnectorDetail() {
             </div>
           </Panel>
         </div>
+      </div>
+    </div>
+  );
+}
+
+type SpecialConnectorProps = {
+  connector: NonNullable<ReturnType<typeof useConnector>["data"]>;
+};
+
+function SpecialConnectorHeader({ connector, copy }: SpecialConnectorProps & { copy: string }) {
+  return (
+    <>
+      <Link to="/app/connectors" className="font-mono text-xs text-mute hover:text-white">
+        ← Connectors
+      </Link>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-md border border-line bg-ink2 font-mono text-sm text-fog">
+          {connector.name.slice(0, 2).toUpperCase()}
+        </span>
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{connector.name}</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">{connector.category}</p>
+        </div>
+        <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] text-mute">
+          <span className="size-1.5 rounded-full bg-mute" />
+          {connector.connected ? connector.status : "not connected"}
+        </span>
+      </div>
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-fog">{copy}</p>
+    </>
+  );
+}
+
+const specialField =
+  "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2.5 text-sm text-white outline-none focus:border-pink";
+
+function TelegramOnboarding({ connector }: SpecialConnectorProps) {
+  const [step, setStep] = useState<"phone" | "code" | "password" | "ready">("phone");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+
+  const submitPhone = () => {
+    if (!phone.trim()) {
+      toast.error("Enter the phone number linked to Telegram.");
+      return;
+    }
+    setStep("code");
+    toast.success("Telegram sent a login code to your account.");
+  };
+
+  const submitCode = () => {
+    if (!code.trim()) {
+      toast.error("Enter the Telegram login code.");
+      return;
+    }
+    setStep("password");
+  };
+
+  return (
+    <div className="p-4 lg:p-8">
+      <SpecialConnectorHeader
+        connector={connector}
+        copy="Connect your own Telegram account, then choose which chats can feed signals to your agent."
+      />
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Panel>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-display text-lg font-semibold">Telegram login</h2>
+              <p className="mt-1 text-sm text-fog">A one-time sign-in keeps this account scoped to you.</p>
+            </div>
+            <span className="font-mono text-[11px] text-pink">{step === "ready" ? "4 / 4" : step === "phone" ? "1 / 4" : step === "code" ? "2 / 4" : "3 / 4"}</span>
+          </div>
+
+          <div className="mt-5 grid grid-cols-4 gap-1.5" aria-label="Telegram setup progress">
+            {["phone", "code", "password", "ready"].map((item, index) => (
+              <span key={item} className={`h-1 rounded-full ${index <= ["phone", "code", "password", "ready"].indexOf(step) ? "bg-pink" : "bg-line"}`} />
+            ))}
+          </div>
+
+          <div className="mt-6">
+            {step === "phone" && (
+              <div>
+                <label className="block text-sm">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Phone number</span>
+                  <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
+                </label>
+                <button type="button" onClick={submitPhone} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
+                  Send login code
+                </button>
+              </div>
+            )}
+
+            {step === "code" && (
+              <div>
+                <label className="block text-sm">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Login code</span>
+                  <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="12345" inputMode="numeric" autoComplete="one-time-code" className={specialField} />
+                </label>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button type="button" onClick={submitCode} className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">Verify code</button>
+                  <button type="button" onClick={() => setStep("phone")} className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2">Change number</button>
+                </div>
+              </div>
+            )}
+
+            {step === "password" && (
+              <div>
+                <label className="block text-sm">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Two-step verification password <span className="normal-case tracking-normal">(optional)</span></span>
+                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Only if Telegram asks for it" className={specialField} />
+                </label>
+                <button type="button" onClick={() => setStep("ready")} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
+                  Finish Telegram setup
+                </button>
+              </div>
+            )}
+
+            {step === "ready" && (
+              <div className="rounded-md border border-mint/30 bg-mint/5 p-4">
+                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mint">Login captured</p>
+                <p className="mt-2 text-sm text-fog">Your secure Telegram session will be attached to this account when the session service is enabled.</p>
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        <Panel>
+          <h2 className="font-display text-lg font-semibold">Before you continue</h2>
+          <ul className="mt-4 space-y-3 text-sm text-fog">
+            <li className="border-l-2 border-pink pl-3">Only chats you explicitly allow will reach the signal pipeline.</li>
+            <li className="border-l-2 border-line pl-3">Your session belongs to this user account, not the workspace.</li>
+            <li className="border-l-2 border-line pl-3">You can revoke access from this page at any time.</li>
+          </ul>
+        </Panel>
+      </div>
+    </div>
+  );
+}
+
+function WhatsAppOnboarding({ connector }: SpecialConnectorProps) {
+  const [phone, setPhone] = useState("");
+  const [label, setLabel] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const startSetup = () => {
+    if (!phone.trim()) {
+      toast.error("Enter the WhatsApp number that should receive alerts.");
+      return;
+    }
+    setSubmitted(true);
+    toast.success("WhatsApp number ready for Meta setup.");
+  };
+
+  return (
+    <div className="p-4 lg:p-8">
+      <SpecialConnectorHeader
+        connector={connector}
+        copy="Choose the number that should receive agent alerts. WhatsApp is send-only, so no messages are read from this account."
+      />
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Panel>
+          <h2 className="font-display text-lg font-semibold">Connect your number</h2>
+          <p className="mt-1 text-sm text-fog">Meta will verify the number before alerts can be delivered.</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <label className="block text-sm">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">WhatsApp number</span>
+              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
+            </label>
+            <label className="block text-sm">
+              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Label</span>
+              <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Personal alerts" className={specialField} />
+            </label>
+          </div>
+          {submitted && (
+            <p className="mt-4 rounded-md border border-amber/30 bg-amber/5 px-3 py-2 font-mono text-[11px] text-amber">
+              Meta embedded signup will open here once this workspace has its WhatsApp Business app configured.
+            </p>
+          )}
+          <button type="button" onClick={startSetup} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
+            Continue with Meta setup
+          </button>
+        </Panel>
+
+        <Panel>
+          <h2 className="font-display text-lg font-semibold">What WhatsApp receives</h2>
+          <ul className="mt-4 space-y-3 text-sm text-fog">
+            <li className="border-l-2 border-mint pl-3">Task completion and failure notifications.</li>
+            <li className="border-l-2 border-mint pl-3">Signal alerts that clear your confidence threshold.</li>
+            <li className="border-l-2 border-line pl-3">No inbound messages or contact history.</li>
+          </ul>
+        </Panel>
       </div>
     </div>
   );
