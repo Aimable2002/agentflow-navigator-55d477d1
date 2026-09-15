@@ -32,11 +32,8 @@ function SignUp() {
     setBusy(true);
     try {
       const { session } = await signUpWithEmail(email.trim(), password, fullName.trim() || undefined);
-      // Email verification is disabled for now: accounts are confirmed on
-      // creation, so we go straight into the workspace instead of /verify-email.
-      // navigate({ to: "/verify-email" });
+      // Email verification is intentionally disabled until the project enables it.
       if (session) navigate({ to: "/onboarding" });
-      else navigate({ to: "/login" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not create the account.");
     } finally {

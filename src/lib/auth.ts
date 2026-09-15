@@ -37,13 +37,13 @@ export async function signUpWithEmail(email: string, password: string, fullName?
     email,
     password,
     options: {
-      // Email confirmation is disabled on the project for now, so this
-      // redirect is unused; it is kept for when verification is switched on.
-      emailRedirectTo: `${window.location.origin}/app`,
       ...(fullName ? { data: { full_name: fullName } } : {}),
     },
   });
   if (error) throw error;
+  if (!data.session) {
+    throw new Error("Your account was created, but the session was not started. Please try signing in.");
+  }
   return { session: data.session, user: data.user };
 }
 
