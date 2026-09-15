@@ -1,11 +1,22 @@
 /**
- * Client for the PINK agent backend (FastAPI). The backend queues an agent run
- * and returns a job id; the frontend persists conversations, messages and tasks
- * in Supabase and polls the job until it resolves.
+ * Client for the PINK agent backend (FastAPI).
+ *
+ * Calls go through this app's own server (src/lib/pink.functions.ts), which
+ * forwards them to the backend with the signed-in user's bearer token. That
+ * avoids the browser's cross-origin restrictions, since the backend serves no
+ * CORS headers of its own.
+ *
+ * Endpoints, as published by the backend's OpenAPI document:
+ *   POST /v1/chat            -> { job_id, status, plan }
+ *   GET  /v1/chat/{job_id}   -> { status, data?, error? }
+ *   GET  /healthz            -> { status }
+ *
+ * The frontend persists conversations, messages and tasks in Supabase and
+ * polls the job until it resolves.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { getJobFn, healthFn, PINK_API_URL, startChatFn } from "@/lib/pink.functions";
 
-export const PINK_API_URL = ((import.meta.env["VITE_PINK_API_URL"] as string | undefined) ?? "").replace(/\/$/, "");
+export { PINK_API_URL };
 
 export const isApiConfigured = PINK_API_URL.length > 0;
 
@@ -17,32 +28,13 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!isApiConfigured) {
-    throw new ApiError(0, "The agent backend is not connected yet.");
-  }
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+type ProxyResult =
+  | { ok: true; status: number; body: Record<string, unknown> | null }
+  | { ok: false; status: number; message: string };
 
-  let response: Response;
-  try {
-    response = await fetch(`${PINK_API_URL}${path}`, {
-      ...init,
-      headers: {
-        "content-type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        ...(init?.headers ?? {}),
-      },
-    });
-  } catch {
-    throw new ApiError(0, "The agent backend could not be reached from the browser.");
-  }
-
-  if (!response.ok) {
-    const body = await response.text();
-    throw new ApiError(response.status, body || `Request failed (${response.status})`);
-  }
-  return (await response.json()) as T;
+function unwrap<T>(result: ProxyResult): T {
+  if (!result.ok) throw new ApiError(result.status, result.message);
+  return (result.body ?? {}) as T;
 }
 
 export type ChatPlan = { tier?: "small" | "medium" | "best"; difficulty?: number; reason?: string };
@@ -69,23 +61,29 @@ export type JobStatusResponse = {
 export type ApiHistoryMessage = { role: "user" | "assistant" | "system"; content: string };
 
 /** POST /v1/chat — queues an agent run. */
-export function startChat(input: { prompt: string; messages?: ApiHistoryMessage[]; connectors?: string[] }) {
-  return request<StartChatResponse>("/v1/chat", {
-    method: "POST",
-    body: JSON.stringify({
+export async function startChat(input: {
+  prompt: string;
+  messages?: ApiHistoryMessage[];
+  connectors?: string[];
+}) {
+  const result = await startChatFn({
+    data: {
       prompt: input.prompt,
       messages: input.messages ?? [],
       connectors: input.connectors ?? [],
-    }),
+    },
   });
+  return unwrap<StartChatResponse>(result as ProxyResult);
 }
 
 /** GET /v1/chat/{job_id} — polls a queued run. */
-export function getJob(jobId: string) {
-  return request<JobStatusResponse>(`/v1/chat/${jobId}`);
+export async function getJob(jobId: string) {
+  const result = await getJobFn({ data: { jobId } });
+  return unwrap<JobStatusResponse>(result as ProxyResult);
 }
 
 /** GET /healthz */
-export function apiHealth() {
-  return request<{ status: string }>("/healthz");
+export async function apiHealth() {
+  const result = await healthFn();
+  return unwrap<{ status: string }>(result as ProxyResult);
 }
