@@ -1,6 +1,7 @@
 import { createStart, createCsrfMiddleware, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
+import { attachPinkAuth } from "./lib/pink-auth";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -26,4 +27,7 @@ const csrfMiddleware = createCsrfMiddleware({
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware, csrfMiddleware],
+  // Sends the signed-in user's Supabase token with every server function call,
+  // so the agent proxy can authenticate against the FastAPI backend.
+  functionMiddleware: [attachPinkAuth],
 }));
