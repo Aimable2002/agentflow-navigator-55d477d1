@@ -1,138 +1,186 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
-import { Meter, Panel, TierBadge } from "@/components/pink/primitives";
-import { connectors, usage } from "@/lib/mock";
+import { ActivityBars, ConnectorChip, Meter, Panel, TierBadge } from "@/components/pink/primitives";
+import { tierMeta } from "@/lib/content";
+import { useConnectors, useProfile, useUsageEvents } from "@/lib/queries";
+import { money, shortDate } from "@/lib/format";
+import type { Tier, UsageEvent } from "@/lib/types";
 
 export const Route = createFileRoute("/app/usage")({
   head: () => ({
     meta: [
-      { title: "Usage & quota | PINK workspace" },
-      { name: "description", content: "Requests against your plan quota, split by model tier and connector." },
-      { property: "og:title", content: "PINK usage and quota" },
-      { property: "og:description", content: "See where your agent requests and spend are going." },
+      { title: "Usage | PINK workspace" },
+      {
+        name: "description",
+        content: "Requests, tool calls and cost broken down by model tier, connector and day.",
+      },
+      { property: "og:title", content: "PINK usage" },
+      { property: "og:description", content: "See exactly where your agent requests and spend went." },
+      { name: "robots", content: "noindex" },
     ],
   }),
   component: Usage,
 });
 
+const tiers: Tier[] = ["small", "medium", "best"];
+
+function sum(events: UsageEvent[], key: "requests" | "tool_calls" | "cost_usd") {
+  return events.reduce((acc, e) => acc + (e[key] ?? 0), 0);
+}
+
+/** Requests per day for the last 14 days, oldest first. */
+function dailySeries(events: UsageEvent[], days = 14) {
+  const buckets = new Map<string, number>();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - i);
+    buckets.set(d.toISOString().slice(0, 10), 0);
+  }
+  for (const e of events) {
+    const day = e.created_at.slice(0, 10);
+    if (buckets.has(day)) buckets.set(day, (buckets.get(day) ?? 0) + (e.requests ?? 0));
+  }
+  return [...buckets.entries()].map(([day, value]) => ({ day, value }));
+}
+
 function Usage() {
-  const pct = Math.round((usage.requestsUsed / usage.requestsLimit) * 100);
-  const max = Math.max(...usage.daily.map((d) => d.small + d.medium + d.best));
+  const { data: events = [], isLoading, error } = useUsageEvents();
+  const { data: profile } = useProfile();
+  const { data: connectors } = useConnectors();
+
+  const totalRequests = sum(events, "requests");
+  const totalToolCalls = sum(events, "tool_calls");
+  const totalCost = sum(events, "cost_usd");
+  const series = dailySeries(events);
+  const peak = series.reduce((a, b) => (b.value > a.value ? b : a), series[0] ?? { day: "", value: 0 });
+
+  const byConnector = [...
+    events.reduce((map, e) => {
+      if (!e.connector_id) return map;
+      const prev = map.get(e.connector_id) ?? { calls: 0, cost: 0 };
+      map.set(e.connector_id, { calls: prev.calls + (e.tool_calls ?? 0), cost: prev.cost + (e.cost_usd ?? 0) });
+      return map;
+    }, new Map<string, { calls: number; cost: number }>())
+  ]
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.calls - a.calls);
+
+  const quotaPct =
+    profile && profile.quota_limit > 0 ? Math.min(100, Math.round((profile.quota_used / profile.quota_limit) * 100)) : 0;
 
   return (
     <>
       <PageHeader
         title="Usage"
-        copy={`${usage.requestsUsed} of ${usage.requestsLimit} requests used this cycle. Renews ${usage.renewsOn}.`}
-        actions={
-          <Link
-            to="/app/billing"
-            className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-white"
-          >
-            Upgrade plan
-          </Link>
-        }
+        copy="Every request is recorded with the tier that answered it and the connectors it touched, so routing decisions are auditable."
       />
 
       <div className="space-y-6 p-4 lg:p-8">
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Panel className="lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <h2 className="font-display text-lg font-semibold">Quota</h2>
-              <span className="ml-auto font-mono text-xs text-fog">{pct}% used</span>
-            </div>
-            <div className="mt-3">
-              <Meter value={pct} tone={pct > 80 ? "pink" : "mute"} />
-            </div>
-            <p className="mt-2 font-mono text-[11px] text-mute">
-              {usage.requestsLimit - usage.requestsUsed} requests left · best-effort priority on {usage.plan}
-            </p>
+        {error && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-white/90">
+            {error.message}
+          </p>
+        )}
+        {isLoading && <p className="text-sm text-mute">Loading usage…</p>}
+        {!isLoading && events.length === 0 && (
+          <p className="rounded-md border border-line bg-panel px-4 py-3 text-sm text-fog">
+            No usage recorded yet. Numbers appear here as soon as the agent runs its first request.
+          </p>
+        )}
 
-            <h3 className="mt-8 font-mono text-[11px] uppercase tracking-[0.14em] text-mute">Last 7 days by tier</h3>
-            <div className="mt-4 flex h-40 items-end gap-3">
-              {usage.daily.map((d) => {
-                const total = d.small + d.medium + d.best;
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Panel>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Requests</p>
+            <p className="mt-2 font-display text-3xl font-semibold">{totalRequests.toLocaleString()}</p>
+          </Panel>
+          <Panel>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Tool calls</p>
+            <p className="mt-2 font-display text-3xl font-semibold">{totalToolCalls.toLocaleString()}</p>
+          </Panel>
+          <Panel>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Model cost</p>
+            <p className="mt-2 font-display text-3xl font-semibold">{money(totalCost)}</p>
+          </Panel>
+          <Panel>
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Quota used</p>
+            <p className="mt-2 font-display text-3xl font-semibold">{quotaPct}%</p>
+            <div className="mt-3">
+              <Meter value={quotaPct} tone={quotaPct > 85 ? "pink" : "mint"} />
+            </div>
+            {profile && (
+              <p className="mt-2 font-mono text-[10px] text-mute">
+                {profile.quota_used.toLocaleString()} / {profile.quota_limit.toLocaleString()} on {profile.plan}
+              </p>
+            )}
+          </Panel>
+        </section>
+
+        <Panel>
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="font-display text-lg font-semibold">Requests per day</h2>
+            <span className="ml-auto font-mono text-[11px] text-mute">
+              last 14 days · peak {peak.value.toLocaleString()} on {shortDate(peak.day)}
+            </span>
+          </div>
+          <div className="mt-5">
+            <ActivityBars values={series.map((s) => s.value)} />
+          </div>
+        </Panel>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Panel>
+            <h2 className="font-display text-lg font-semibold">By model tier</h2>
+            <div className="mt-4 space-y-4">
+              {tiers.map((t) => {
+                const forTier = events.filter((e) => e.tier === t);
+                const reqs = sum(forTier, "requests");
+                const share = totalRequests > 0 ? Math.round((reqs / totalRequests) * 100) : 0;
                 return (
-                  <div key={d.day} className="flex flex-1 flex-col items-center gap-2">
-                    <div
-                      className="flex w-full flex-col justify-end overflow-hidden rounded-t"
-                      style={{ height: `${(total / max) * 100}%` }}
-                    >
-                      <span className="w-full bg-pink" style={{ height: `${(d.best / total) * 100}%` }} />
-                      <span className="w-full bg-fog/60" style={{ height: `${(d.medium / total) * 100}%` }} />
-                      <span className="w-full bg-mint" style={{ height: `${(d.small / total) * 100}%` }} />
+                  <div key={t}>
+                    <div className="flex items-center gap-3">
+                      <TierBadge tier={t} />
+                      <span className="text-sm text-fog">{tierMeta[t].label}</span>
+                      <span className="ml-auto font-mono text-xs text-fog">
+                        {reqs.toLocaleString()} req · {money(sum(forTier, "cost_usd"))}
+                      </span>
                     </div>
-                    <span className="font-mono text-[10px] text-mute">{d.day}</span>
+                    <div className="mt-2">
+                      <Meter value={share} tone={t === "best" ? "pink" : t === "medium" ? "violet" : "mint"} />
+                    </div>
+                    <p className="mt-1 font-mono text-[10px] text-mute">{share}% of all requests</p>
                   </div>
                 );
               })}
             </div>
-            <div className="mt-3 flex gap-4 font-mono text-[10px] text-mute">
-              <span className="text-mint">■ small</span>
-              <span className="text-fog">■ medium</span>
-              <span className="text-pink">■ best</span>
-            </div>
           </Panel>
 
-          <div className="space-y-4">
-            <Panel>
-              <h2 className="font-display text-lg font-semibold">Cost by tier</h2>
-              <div className="mt-4 space-y-4">
-                {usage.byTier.map((t) => (
-                  <div key={t.tier}>
+          <Panel>
+            <h2 className="font-display text-lg font-semibold">By connector</h2>
+            <div className="mt-4 space-y-3">
+              {byConnector.length === 0 && (
+                <p className="text-sm text-fog">No connector tool calls recorded yet.</p>
+              )}
+              {byConnector.map((c) => {
+                const top = byConnector[0]?.calls ?? 1;
+                const name = connectors.find((k) => k.id === c.id)?.name;
+                return (
+                  <div key={c.id}>
                     <div className="flex items-center gap-2">
-                      <TierBadge tier={t.tier} />
-                      <span className="ml-auto font-mono text-xs text-fog">{t.requests} req</span>
-                      <span className="font-mono text-xs text-mute">{t.cost}</span>
+                      <ConnectorChip id={c.id} />
+                      {name && <span className="text-sm text-fog">{name}</span>}
+                      <span className="ml-auto font-mono text-xs text-fog">
+                        {c.calls.toLocaleString()} calls · {money(c.cost)}
+                      </span>
                     </div>
                     <div className="mt-2">
-                      <Meter value={t.share} tone={t.tier === "best" ? "pink" : t.tier === "medium" ? "mute" : "mint"} />
+                      <Meter value={Math.round((c.calls / top) * 100)} tone="violet" />
                     </div>
                   </div>
-                ))}
-              </div>
-              <p className="mt-5 border-t border-line pt-4 font-mono text-xs text-fog">
-                Total this cycle · <span className="text-white">{usage.spend}</span> (covered by free tier)
-              </p>
-            </Panel>
-            <Panel>
-              <h2 className="font-display text-lg font-semibold">Connector calls</h2>
-              <ul className="mt-4 space-y-3">
-                {usage.byConnector.map((c) => (
-                  <li key={c.id}>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Link
-                        to="/app/connectors/$connectorId"
-                        params={{ connectorId: c.id }}
-                        className="text-fog hover:text-white"
-                      >
-                        {connectors.find((x) => x.id === c.id)?.name}
-                      </Link>
-                      <span className="ml-auto font-mono text-xs text-mute">{c.calls}</span>
-                    </div>
-                    <div className="mt-1.5">
-                      <Meter value={(c.calls / 184) * 100} tone="mute" />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          </div>
-        </section>
-
-        <Panel accent>
-          <h2 className="font-display text-lg font-semibold">You are close to the free quota</h2>
-          <p className="mt-2 max-w-2xl text-sm text-white/90">
-            At {pct}% used, heavy best-tier jobs will start queueing behind paid traffic. Pro raises the ceiling to
-            10,000 requests and gives every request priority processing.
-          </p>
-          <Link
-            to="/app/billing"
-            className="mt-4 inline-block rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white"
-          >
-            Compare plans
-          </Link>
-        </Panel>
+                );
+              })}
+            </div>
+          </Panel>
+        </div>
       </div>
     </>
   );
