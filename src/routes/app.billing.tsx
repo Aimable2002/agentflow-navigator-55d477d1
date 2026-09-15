@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/app/app-shell";
 import { Meter, Panel } from "@/components/pink/primitives";
 import { plans } from "@/lib/content";
 import { useInvoices, useProfile, useUpdateProfile } from "@/lib/queries";
-import { longDate, money, relativeTime } from "@/lib/format";
+import { shortDate, money, relativeTime } from "@/lib/format";
 
 export const Route = createFileRoute("/app/billing")({
   head: () => ({
@@ -71,7 +71,7 @@ function Billing() {
                 {profile.plan}
               </span>
               <span className="ml-auto font-mono text-[11px] text-mute">
-                period started {longDate(profile.quota_period_start)}
+                period started {shortDate(profile.quota_period_start)}
               </span>
             </div>
             <div className="mt-5 grid gap-6 sm:grid-cols-3">
@@ -98,7 +98,7 @@ function Billing() {
             {plans.map((p) => {
               const isCurrent = p.id === currentPlan;
               return (
-                <Panel key={p.id} className={isCurrent ? "border-pink/50" : undefined}>
+                <Panel key={p.id} className={isCurrent ? "border-pink/50" : ""}>
                   <div className="flex items-center gap-2">
                     <h3 className="font-display text-lg font-semibold">{p.name}</h3>
                     {isCurrent && (
@@ -168,7 +168,7 @@ function Billing() {
                 {invoices.map((i) => (
                   <tr key={i.id} className="text-fog">
                     <td className="py-3 pr-4 font-mono text-xs text-white">{i.number}</td>
-                    <td className="py-3 pr-4 font-mono text-xs">{longDate(i.issued_at)}</td>
+                    <td className="py-3 pr-4 font-mono text-xs">{shortDate(i.issued_at)}</td>
                     <td className="py-3 pr-4">{i.plan}</td>
                     <td className="py-3 pr-4 font-mono text-xs">{money(i.amount_usd)}</td>
                     <td className="py-3 pr-4">
