@@ -1,42 +1,104 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Panel } from "@/components/pink/primitives";
-import { Switch } from "@/components/ui/switch";
-import { connectorById, tasks } from "@/lib/mock";
+import { Panel, StatusPill, TierBadge } from "@/components/pink/primitives";
+import { useConnector, useDisconnectConnector, useSaveConnection, useTasks } from "@/lib/queries";
+import { relativeTime, shortId, taskDuration } from "@/lib/format";
+import type { ConnectorScope, McpTransport } from "@/lib/types";
 
 export const Route = createFileRoute("/app/connectors/$connectorId")({
-  loader: ({ params }) => {
-    const connector = connectorById(params.connectorId);
-    if (!connector) throw notFound();
-    return { connector };
-  },
-  head: ({ loaderData }) => {
-    if (!loaderData)
-      return { meta: [{ title: "Connector not found | PINK" }, { name: "robots", content: "noindex" }] };
-    const c = loaderData.connector;
-    return {
-      meta: [
-        { title: `${c.name} connector | PINK` },
-        { name: "description", content: c.description },
-        { property: "og:title", content: `${c.name} connector settings — PINK` },
-        { property: "og:description", content: c.tagline },
-      ],
-    };
-  },
-  notFoundComponent: () => (
-    <div className="p-8">
-      <h1 className="font-display text-2xl font-semibold">Connector not found</h1>
-      <Link to="/app/connectors" className="mt-4 inline-block font-mono text-sm text-pink hover:underline">
-        ← All connectors
-      </Link>
-    </div>
-  ),
+  head: () => ({
+    meta: [
+      { title: "Connector setup | PINK workspace" },
+      { name: "description", content: "Connect this tool, choose its transport and grant only the scopes you want." },
+      { property: "og:title", content: "PINK connector setup" },
+      { property: "og:description", content: "Scoped, revocable access for one tool." },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
   component: ConnectorDetail,
 });
 
+const transports: McpTransport[] = ["stdio", "sse", "http"];
+
 function ConnectorDetail() {
-  const { connector: c } = Route.useLoaderData();
-  const related = tasks.filter((t) => t.connector === c.id);
+  const { connectorId } = Route.useParams();
+  const { data: connector, isLoading, error } = useConnector(connectorId);
+  const { data: tasks = [] } = useTasks();
+  const save = useSaveConnection();
+  const disconnect = useDisconnectConnector();
+
+  const [transport, setTransport] = useState<McpTransport>("http");
+  const [serverUrl, setServerUrl] = useState("");
+  const [authHeader, setAuthHeader] = useState("Authorization");
+  const [authToken, setAuthToken] = useState("");
+  const [command, setCommand] = useState("");
+  const [args, setArgs] = useState("");
+  const [accountLabel, setAccountLabel] = useState("");
+  const [scopes, setScopes] = useState<ConnectorScope[]>([]);
+
+  useEffect(() => {
+    if (!connector) return;
+    const c = connector.connection;
+    setTransport(c?.transport ?? connector.default_transport);
+    setServerUrl(c?.server_url ?? connector.default_server_url ?? "");
+    setAuthHeader(c?.auth_header_name ?? "Authorization");
+    setCommand(c?.command ?? "");
+    setArgs((c?.args ?? []).join(" "));
+    setAccountLabel(c?.account_label ?? "");
+    setScopes(connector.scopes);
+  }, [connector]);
+
+  if (isLoading) return <div className="p-8 text-sm text-mute">Loading connector…</div>;
+
+  if (error || !connector) {
+    return (
+      <div className="p-8">
+        <h1 className="font-display text-2xl font-semibold">Connector not found</h1>
+        <p className="mt-2 text-fog">{error?.message ?? "This connector is not in the catalogue."}</p>
+        <Link to="/app/connectors" className="mt-4 inline-block font-mono text-sm text-pink hover:underline">
+          ← All connectors
+        </Link>
+      </div>
+    );
+  }
+
+  const related = tasks.filter((t) => t.connector_id === connector.id);
+  const grantedCount = scopes.filter((s) => s.granted).length;
+
+  const submit = () => {
+    if (transport !== "stdio" && !serverUrl.trim()) {
+      toast.error("A server URL is required for SSE and HTTP transports.");
+      return;
+    }
+    if (transport === "stdio" && !command.trim()) {
+      toast.error("A command is required for the stdio transport.");
+      return;
+    }
+    save.mutate(
+      {
+        connector_id: connector.id,
+        transport,
+        server_url: transport === "stdio" ? null : serverUrl.trim(),
+        auth_header_name: authHeader.trim() || "Authorization",
+        auth_token: authToken.trim() || null,
+        command: transport === "stdio" ? command.trim() : null,
+        args: transport === "stdio" ? args.trim().split(/\s+/).filter(Boolean) : [],
+        account_label: accountLabel.trim() || null,
+        scopes,
+        status: "connected",
+      },
+      {
+        onSuccess: () => {
+          setAuthToken("");
+          toast.success(`${connector.name} saved`);
+        },
+        onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save this connection."),
+      },
+    );
+  };
+
+  const field = "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2 font-mono text-xs text-white outline-none focus:border-pink";
 
   return (
     <div className="p-4 lg:p-8">
@@ -44,145 +106,251 @@ function ConnectorDetail() {
         ← Connectors
       </Link>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <span className="grid size-11 place-items-center rounded-md border border-line bg-panel font-mono text-sm text-fog">
-          {c.name.slice(0, 2).toUpperCase()}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-md border border-line bg-ink2 font-mono text-sm text-fog">
+          {connector.name.slice(0, 2).toUpperCase()}
         </span>
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">{c.name}</h1>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
-            {c.category} · {c.connected ? c.account : "not connected"}
-          </p>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">{connector.name}</h1>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">{connector.category}</p>
         </div>
-        <div className="ml-auto flex gap-2">
-          {c.connected ? (
-            <>
-              <button
-                type="button"
-                onClick={() => toast.success(`${c.name} re-synced`)}
-                className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-panel"
-              >
-                Re-sync
-              </button>
-              <button
-                type="button"
-                onClick={() => toast(`${c.name} disconnected`, { description: "Running tasks using it were stopped." })}
-                className="rounded-md border border-destructive/40 px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10"
-              >
-                Disconnect
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => toast.success(`Authorisation started for ${c.name}`)}
-              className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white"
-            >
-              Connect {c.name}
-            </button>
-          )}
-        </div>
+        <span
+          className={
+            connector.connected
+              ? "ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] text-mint"
+              : "ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] text-mute"
+          }
+        >
+          <span className={connector.connected ? "size-1.5 rounded-full bg-mint" : "size-1.5 rounded-full bg-mute"} />
+          {connector.status}
+        </span>
       </div>
+
+      <p className="mt-4 max-w-2xl text-sm leading-relaxed text-fog">{connector.description}</p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-4">
           <Panel>
-            <h2 className="font-display text-lg font-semibold">About this connector</h2>
-            <p className="mt-3 text-sm leading-relaxed text-fog">{c.description}</p>
-          </Panel>
-
-          <Panel>
-            <h2 className="font-display text-lg font-semibold">Permission scopes</h2>
-            <p className="mt-2 text-sm text-fog">
-              The agent can only do what is switched on here. Sensitive scopes stay off until you enable them.
+            <h2 className="font-display text-lg font-semibold">Connection</h2>
+            <p className="mt-1 text-sm text-fog">
+              The agent opens this connector with your own credentials. Tokens are stored against your account and never
+              shown again after saving.
             </p>
-            <ul className="mt-4 divide-y divide-line">
-              {c.scopes.map((s) => (
-                <li key={s.label} className="flex items-center gap-4 py-3.5">
-                  <div className="min-w-0">
-                    <p className="text-sm text-white">{s.label}</p>
-                    <p className="font-mono text-[11px] text-mute">{s.detail}</p>
-                  </div>
-                  <Switch
-                    defaultChecked={s.granted}
-                    disabled={!c.connected}
-                    className="ml-auto"
-                    onCheckedChange={(v) =>
-                      toast(v ? `Granted: ${s.label}` : `Revoked: ${s.label}`, {
-                        description: `${c.name} scope updated.`,
-                      })
-                    }
-                    aria-label={s.label}
-                  />
-                </li>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {transports.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setTransport(t)}
+                  className={
+                    transport === t
+                      ? "rounded-md bg-pink px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-ink"
+                      : "rounded-md border border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.1em] text-fog hover:bg-ink2"
+                  }
+                >
+                  {t}
+                </button>
               ))}
-            </ul>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Account label</span>
+                <input
+                  value={accountLabel}
+                  onChange={(e) => setAccountLabel(e.target.value)}
+                  placeholder="which account is this?"
+                  className={field}
+                />
+              </label>
+
+              {transport === "stdio" ? (
+                <>
+                  <label className="block text-sm">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Command</span>
+                    <input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="npx" className={field} />
+                  </label>
+                  <label className="block text-sm sm:col-span-2">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Arguments</span>
+                    <input
+                      value={args}
+                      onChange={(e) => setArgs(e.target.value)}
+                      placeholder="-y @modelcontextprotocol/server-github"
+                      className={field}
+                    />
+                  </label>
+                </>
+              ) : (
+                <>
+                  <label className="block text-sm">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Server URL</span>
+                    <input
+                      value={serverUrl}
+                      onChange={(e) => setServerUrl(e.target.value)}
+                      placeholder="https://mcp.example.com/sse"
+                      className={field}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Auth header</span>
+                    <input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} className={field} />
+                  </label>
+                </>
+              )}
+
+              <label className="block text-sm sm:col-span-2">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+                  {connector.connection ? "Replace token (leave blank to keep)" : "Token"}
+                </span>
+                <input
+                  type="password"
+                  value={authToken}
+                  onChange={(e) => setAuthToken(e.target.value)}
+                  placeholder="••••••••••••"
+                  className={field}
+                />
+              </label>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={save.isPending}
+                className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50"
+              >
+                {save.isPending ? "Saving…" : connector.connected ? "Save changes" : "Connect"}
+              </button>
+              {connector.connected && (
+                <button
+                  type="button"
+                  disabled={disconnect.isPending}
+                  onClick={() =>
+                    disconnect.mutate(connector.id, {
+                      onSuccess: () => toast.success(`${connector.name} disconnected`),
+                      onError: (e) => toast.error(e instanceof Error ? e.message : "Could not disconnect."),
+                    })
+                  }
+                  className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2 disabled:opacity-50"
+                >
+                  {disconnect.isPending ? "Disconnecting…" : "Disconnect"}
+                </button>
+              )}
+              {connector.docs_url && (
+                <a
+                  href={connector.docs_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2"
+                >
+                  Provider docs ↗
+                </a>
+              )}
+            </div>
           </Panel>
 
           <Panel>
-            <h2 className="font-display text-lg font-semibold">What people ask it for</h2>
-            <ul className="mt-4 space-y-2.5">
-              {c.actions.map((a) => (
-                <li key={a} className="flex gap-3 text-sm text-fog">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-mint" />
-                  {a}
+            <div className="flex items-center gap-3">
+              <h2 className="font-display text-lg font-semibold">Scopes</h2>
+              <span className="ml-auto font-mono text-[11px] text-mute">
+                {grantedCount} of {scopes.length} granted
+              </span>
+            </div>
+            <ul className="mt-4 divide-y divide-line">
+              {scopes.length === 0 && <li className="py-3 text-sm text-fog">This connector defines no scopes.</li>}
+              {scopes.map((s, i) => (
+                <li key={s.key} className="flex items-start gap-3 py-3">
+                  <button
+                    type="button"
+                    aria-pressed={s.granted}
+                    aria-label={`Toggle ${s.label}`}
+                    onClick={() =>
+                      setScopes((prev) => prev.map((p, pi) => (pi === i ? { ...p, granted: !p.granted } : p)))
+                    }
+                    className={
+                      s.granted
+                        ? "mt-0.5 h-5 w-9 shrink-0 rounded-full bg-mint p-0.5 transition-colors"
+                        : "mt-0.5 h-5 w-9 shrink-0 rounded-full bg-line p-0.5 transition-colors"
+                    }
+                  >
+                    <span
+                      className={
+                        s.granted
+                          ? "block size-4 translate-x-4 rounded-full bg-ink transition-transform"
+                          : "block size-4 rounded-full bg-mute transition-transform"
+                      }
+                    />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white">{s.label}</p>
+                    <p className="text-sm text-fog">{s.detail}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-mute">{s.key}</p>
+                  </div>
                 </li>
               ))}
             </ul>
+            <p className="mt-3 font-mono text-[11px] text-mute">Scope changes save with the button above.</p>
           </Panel>
         </div>
 
         <div className="space-y-4">
-          <Panel accent={c.health === "degraded"}>
-            <h2 className="font-display text-lg font-semibold">Connection</h2>
+          <Panel>
+            <h2 className="font-display text-lg font-semibold">Status</h2>
             <dl className="mt-4 space-y-3 font-mono text-xs">
-              <div className="flex justify-between">
-                <dt className="text-mute">Status</dt>
-                <dd className={c.connected ? (c.health === "degraded" ? "text-amber" : "text-mint") : "text-mute"}>
-                  {c.connected ? (c.health === "degraded" ? "needs attention" : "healthy") : "not connected"}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-mute">Last sync</dt>
-                <dd className="text-fog">{c.lastSync ?? "—"}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-mute">Scopes granted</dt>
-                <dd className="text-fog">
-                  {c.scopes.filter((s) => s.granted).length} of {c.scopes.length}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-mute">Protocol</dt>
-                <dd className="text-fog">MCP</dd>
-              </div>
+              {[
+                ["Transport", connector.transport],
+                ["Server", connector.connection?.server_url ?? connector.default_server_url ?? "—"],
+                ["Account", connector.connection?.account_label ?? "—"],
+                ["Tools exposed", connector.connection?.tool_count?.toString() ?? "—"],
+                ["Last sync", relativeTime(connector.connection?.last_sync_at)],
+              ].map(([k, v]) => (
+                <div key={k} className="flex justify-between gap-4">
+                  <dt className="text-mute">{k}</dt>
+                  <dd className="truncate text-fog">{v}</dd>
+                </div>
+              ))}
             </dl>
-            {c.health === "degraded" && (
-              <p className="mt-4 text-sm text-white/90">
-                The last sync returned a stale token warning. Re-sync to refresh authorisation.
+            {connector.connection?.last_error && (
+              <p className="mt-3 rounded-md border border-amber/40 bg-amber/10 px-3 py-2 font-mono text-[11px] text-amber">
+                {connector.connection.last_error}
               </p>
             )}
           </Panel>
 
           <Panel>
-            <h2 className="font-display text-lg font-semibold">Recent tasks using {c.name}</h2>
-            <ul className="mt-4 space-y-3">
-              {related.length === 0 && <p className="text-sm text-fog">No tasks have used this connector yet.</p>}
-              {related.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    to="/app/tasks/$taskId"
-                    params={{ taskId: t.id }}
-                    className="block text-sm text-fog hover:text-white"
-                  >
-                    {t.title}
-                    <span className="block font-mono text-[10px] text-mute">
-                      {t.id} · {t.status} · {t.duration}
-                    </span>
-                  </Link>
+            <h2 className="font-display text-lg font-semibold">Actions the agent can take</h2>
+            <ul className="mt-3 space-y-1.5 font-mono text-xs text-fog">
+              {connector.actions.map((a) => (
+                <li key={a} className="flex items-center gap-2">
+                  <span className="size-1 rounded-full bg-pink" /> {a}
                 </li>
               ))}
             </ul>
+          </Panel>
+
+          <Panel>
+            <h2 className="font-display text-lg font-semibold">Recent tasks</h2>
+            <div className="mt-3 space-y-3">
+              {related.length === 0 && <p className="text-sm text-fog">No tasks have used this connector yet.</p>}
+              {related.slice(0, 5).map((t) => (
+                <Link
+                  key={t.id}
+                  to="/app/tasks/$taskId"
+                  params={{ taskId: t.id }}
+                  className="block rounded-md border border-line p-3 hover:bg-ink2"
+                >
+                  <div className="flex items-center gap-2">
+                    <StatusPill status={t.status} />
+                    <TierBadge tier={t.tier} className="ml-auto" />
+                  </div>
+                  <p className="mt-2 text-sm text-white">{t.title}</p>
+                  <p className="mt-1 font-mono text-[10px] text-mute">
+                    {shortId(t.id)} · {taskDuration(t)}
+                  </p>
+                </Link>
+              ))}
+            </div>
           </Panel>
         </div>
       </div>
