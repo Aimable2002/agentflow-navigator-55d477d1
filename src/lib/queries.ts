@@ -206,26 +206,15 @@ export function useConversation(conversationId: string) {
 
 export function useTasks() {
   const { user } = useSession();
-  const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["tasks", user?.id],
     enabled: !!user,
+    refetchInterval: 5000,
     queryFn: async () =>
       (assertOk(
         await supabase.from("tasks").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
       ) ?? []) as Task[],
   });
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase
-      .channel(`tasks-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () => {
-        void qc.invalidateQueries({ queryKey: ["tasks"] });
-      })
-      .subscribe();
-    return () => void supabase.removeChannel(channel);
-  }, [user, qc]);
 
   return query;
 }
