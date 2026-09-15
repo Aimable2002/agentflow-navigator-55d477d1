@@ -10,33 +10,427 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DocsRouteImport } from './routes/docs'
+import { Route as FeaturesRouteImport } from './routes/features'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as UseCasesRouteImport } from './routes/use-cases'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppBillingRouteImport } from './routes/app.billing'
+import { Route as AppChatRouteImport } from './routes/app.chat'
+import { Route as AppUsageRouteImport } from './routes/app.usage'
+import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
+import { Route as AppConnectorsIndexRouteImport } from './routes/app.connectors.index'
+import { Route as AppConnectorsConnectorIdRouteImport } from './routes/app.connectors.$connectorId'
+import { Route as AppConversationsIndexRouteImport } from './routes/app.conversations.index'
+import { Route as AppConversationsConversationIdRouteImport } from './routes/app.conversations.$conversationId'
+import { Route as AppSettingsAccountRouteImport } from './routes/app.settings.account'
+import { Route as AppSettingsApiKeysRouteImport } from './routes/app.settings.api-keys'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app.settings.notifications'
+import { Route as AppTasksIndexRouteImport } from './routes/app.tasks.index'
+import { Route as AppTasksTaskIdRouteImport } from './routes/app.tasks.$taskId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRoute = DocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeaturesRoute = FeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UseCasesRoute = UseCasesRouteImport.update({
+  id: '/use-cases',
+  path: '/use-cases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBillingRoute = AppBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChatRoute = AppChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUsageRoute = AppUsageRouteImport.update({
+  id: '/usage',
+  path: '/usage',
+  getParentRoute: () => AppRoute,
+} as any)
+const DocsSlugRoute = DocsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => DocsRoute,
+} as any)
+const AppConnectorsIndexRoute = AppConnectorsIndexRouteImport.update({
+  id: '/connectors/',
+  path: '/connectors/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConnectorsConnectorIdRoute =
+  AppConnectorsConnectorIdRouteImport.update({
+    id: '/connectors/$connectorId',
+    path: '/connectors/$connectorId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppConversationsIndexRoute = AppConversationsIndexRouteImport.update({
+  id: '/conversations/',
+  path: '/conversations/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConversationsConversationIdRoute =
+  AppConversationsConversationIdRouteImport.update({
+    id: '/conversations/$conversationId',
+    path: '/conversations/$conversationId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppSettingsAccountRoute = AppSettingsAccountRouteImport.update({
+  id: '/settings/account',
+  path: '/settings/account',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/settings/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTasksTaskIdRoute = AppTasksTaskIdRouteImport.update({
+  id: '/tasks/$taskId',
+  path: '/tasks/$taskId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/app': typeof AppRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/docs': typeof DocsRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/use-cases': typeof UseCasesRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/app/billing': typeof AppBillingRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/usage': typeof AppUsageRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/app/': typeof AppIndexRoute
+  '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
+  '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/connectors/': typeof AppConnectorsIndexRoute
+  '/app/conversations/': typeof AppConversationsIndexRoute
+  '/app/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
+  '/docs': typeof DocsRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/use-cases': typeof UseCasesRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/app/billing': typeof AppBillingRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/usage': typeof AppUsageRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/app': typeof AppIndexRoute
+  '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
+  '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/connectors': typeof AppConnectorsIndexRoute
+  '/app/conversations': typeof AppConversationsIndexRoute
+  '/app/tasks': typeof AppTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/app': typeof AppRouteWithChildren
+  '/contact': typeof ContactRoute
+  '/docs': typeof DocsRouteWithChildren
+  '/features': typeof FeaturesRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/how-it-works': typeof HowItWorksRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/pricing': typeof PricingRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
+  '/use-cases': typeof UseCasesRoute
+  '/verify-email': typeof VerifyEmailRoute
+  '/app/billing': typeof AppBillingRoute
+  '/app/chat': typeof AppChatRoute
+  '/app/usage': typeof AppUsageRoute
+  '/docs/$slug': typeof DocsSlugRoute
+  '/app/': typeof AppIndexRoute
+  '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
+  '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
+  '/app/settings/account': typeof AppSettingsAccountRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/connectors/': typeof AppConnectorsIndexRoute
+  '/app/conversations/': typeof AppConversationsIndexRoute
+  '/app/tasks/': typeof AppTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/app'
+    | '/contact'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/how-it-works'
+    | '/login'
+    | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
+    | '/support'
+    | '/terms'
+    | '/use-cases'
+    | '/verify-email'
+    | '/app/billing'
+    | '/app/chat'
+    | '/app/usage'
+    | '/docs/$slug'
+    | '/app/'
+    | '/app/connectors/$connectorId'
+    | '/app/conversations/$conversationId'
+    | '/app/settings/account'
+    | '/app/settings/api-keys'
+    | '/app/settings/notifications'
+    | '/app/tasks/$taskId'
+    | '/app/connectors/'
+    | '/app/conversations/'
+    | '/app/tasks/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/contact'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/how-it-works'
+    | '/login'
+    | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
+    | '/support'
+    | '/terms'
+    | '/use-cases'
+    | '/verify-email'
+    | '/app/billing'
+    | '/app/chat'
+    | '/app/usage'
+    | '/docs/$slug'
+    | '/app'
+    | '/app/connectors/$connectorId'
+    | '/app/conversations/$conversationId'
+    | '/app/settings/account'
+    | '/app/settings/api-keys'
+    | '/app/settings/notifications'
+    | '/app/tasks/$taskId'
+    | '/app/connectors'
+    | '/app/conversations'
+    | '/app/tasks'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/app'
+    | '/contact'
+    | '/docs'
+    | '/features'
+    | '/forgot-password'
+    | '/how-it-works'
+    | '/login'
+    | '/onboarding'
+    | '/pricing'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
+    | '/support'
+    | '/terms'
+    | '/use-cases'
+    | '/verify-email'
+    | '/app/billing'
+    | '/app/chat'
+    | '/app/usage'
+    | '/docs/$slug'
+    | '/app/'
+    | '/app/connectors/$connectorId'
+    | '/app/conversations/$conversationId'
+    | '/app/settings/account'
+    | '/app/settings/api-keys'
+    | '/app/settings/notifications'
+    | '/app/tasks/$taskId'
+    | '/app/connectors/'
+    | '/app/conversations/'
+    | '/app/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AppRoute: typeof AppRouteWithChildren
+  ContactRoute: typeof ContactRoute
+  DocsRoute: typeof DocsRouteWithChildren
+  FeaturesRoute: typeof FeaturesRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  HowItWorksRoute: typeof HowItWorksRoute
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  PricingRoute: typeof PricingRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
+  SupportRoute: typeof SupportRoute
+  TermsRoute: typeof TermsRoute
+  UseCasesRoute: typeof UseCasesRoute
+  VerifyEmailRoute: typeof VerifyEmailRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +442,289 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/features': {
+      id: '/features'
+      path: '/features'
+      fullPath: '/features'
+      preLoaderRoute: typeof FeaturesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/use-cases': {
+      id: '/use-cases'
+      path: '/use-cases'
+      fullPath: '/use-cases'
+      preLoaderRoute: typeof UseCasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/billing': {
+      id: '/app/billing'
+      path: '/billing'
+      fullPath: '/app/billing'
+      preLoaderRoute: typeof AppBillingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/chat': {
+      id: '/app/chat'
+      path: '/chat'
+      fullPath: '/app/chat'
+      preLoaderRoute: typeof AppChatRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/usage': {
+      id: '/app/usage'
+      path: '/usage'
+      fullPath: '/app/usage'
+      preLoaderRoute: typeof AppUsageRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/docs/$slug': {
+      id: '/docs/$slug'
+      path: '/$slug'
+      fullPath: '/docs/$slug'
+      preLoaderRoute: typeof DocsSlugRouteImport
+      parentRoute: typeof DocsRoute
+    }
+    '/app/connectors/': {
+      id: '/app/connectors/'
+      path: '/connectors'
+      fullPath: '/app/connectors/'
+      preLoaderRoute: typeof AppConnectorsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/connectors/$connectorId': {
+      id: '/app/connectors/$connectorId'
+      path: '/connectors/$connectorId'
+      fullPath: '/app/connectors/$connectorId'
+      preLoaderRoute: typeof AppConnectorsConnectorIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/conversations/': {
+      id: '/app/conversations/'
+      path: '/conversations'
+      fullPath: '/app/conversations/'
+      preLoaderRoute: typeof AppConversationsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/conversations/$conversationId': {
+      id: '/app/conversations/$conversationId'
+      path: '/conversations/$conversationId'
+      fullPath: '/app/conversations/$conversationId'
+      preLoaderRoute: typeof AppConversationsConversationIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings/account': {
+      id: '/app/settings/account'
+      path: '/settings/account'
+      fullPath: '/app/settings/account'
+      preLoaderRoute: typeof AppSettingsAccountRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings/api-keys': {
+      id: '/app/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/app/settings/api-keys'
+      preLoaderRoute: typeof AppSettingsApiKeysRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tasks/': {
+      id: '/app/tasks/'
+      path: '/tasks'
+      fullPath: '/app/tasks/'
+      preLoaderRoute: typeof AppTasksIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/tasks/$taskId': {
+      id: '/app/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/app/tasks/$taskId'
+      preLoaderRoute: typeof AppTasksTaskIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppBillingRoute: typeof AppBillingRoute
+  AppChatRoute: typeof AppChatRoute
+  AppUsageRoute: typeof AppUsageRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppConnectorsConnectorIdRoute: typeof AppConnectorsConnectorIdRoute
+  AppConversationsConversationIdRoute: typeof AppConversationsConversationIdRoute
+  AppSettingsAccountRoute: typeof AppSettingsAccountRoute
+  AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
+  AppConnectorsIndexRoute: typeof AppConnectorsIndexRoute
+  AppConversationsIndexRoute: typeof AppConversationsIndexRoute
+  AppTasksIndexRoute: typeof AppTasksIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppBillingRoute: AppBillingRoute,
+  AppChatRoute: AppChatRoute,
+  AppUsageRoute: AppUsageRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppConnectorsConnectorIdRoute: AppConnectorsConnectorIdRoute,
+  AppConversationsConversationIdRoute: AppConversationsConversationIdRoute,
+  AppSettingsAccountRoute: AppSettingsAccountRoute,
+  AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppTasksTaskIdRoute: AppTasksTaskIdRoute,
+  AppConnectorsIndexRoute: AppConnectorsIndexRoute,
+  AppConversationsIndexRoute: AppConversationsIndexRoute,
+  AppTasksIndexRoute: AppTasksIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
+interface DocsRouteChildren {
+  DocsSlugRoute: typeof DocsSlugRoute
+}
+
+const DocsRouteChildren: DocsRouteChildren = {
+  DocsSlugRoute: DocsSlugRoute,
+}
+
+const DocsRouteWithChildren = DocsRoute._addFileChildren(DocsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AppRoute: AppRouteWithChildren,
+  ContactRoute: ContactRoute,
+  DocsRoute: DocsRouteWithChildren,
+  FeaturesRoute: FeaturesRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  HowItWorksRoute: HowItWorksRoute,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  PricingRoute: PricingRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
+  SupportRoute: SupportRoute,
+  TermsRoute: TermsRoute,
+  UseCasesRoute: UseCasesRoute,
+  VerifyEmailRoute: VerifyEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
