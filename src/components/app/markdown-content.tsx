@@ -36,7 +36,13 @@ const markdownComponents = {
       {children}
     </a>
   ),
-  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  code: ({
+    children,
+    className,
+  }: {
+    children?: React.ReactNode;
+    className?: string | undefined;
+  }) => (
     <code
       className={cn("rounded bg-panel px-1.5 py-0.5 font-mono text-[0.9em] text-mint", className)}
     >
