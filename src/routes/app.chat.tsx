@@ -159,7 +159,7 @@ function Chat() {
       const result = await sendMessage.mutateAsync({
         prompt,
         conversationId: conversationId ?? null,
-        connectors: connected.map((c) => c.id),
+        connectors: selected,
         mode,
       });
       if (!conversationId) {
