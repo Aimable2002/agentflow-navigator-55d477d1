@@ -126,7 +126,7 @@ function Chat() {
   const { data: tasks = [] } = useTasks();
   const { data: connectors = [] } = useConnectors();
   const sendMessage = useSendMessage();
-  const { watch, pending } = useJobWatcher();
+  const { watch, pending, failure } = useJobWatcher();
 
   const messages = data?.messages ?? [];
   const connected = connectors.filter((c) => c.connected);
@@ -198,6 +198,12 @@ function Chat() {
       {!isApiConfigured && (
         <div className="border-b border-amber/30 bg-amber/10 px-4 py-2.5 text-xs text-white/90 lg:px-8">
           The agent service address isn't configured yet, so new messages can't be sent.
+        </div>
+      )}
+
+      {failure && (
+        <div className="border-b border-destructive/40 bg-destructive/10 px-4 py-2.5 text-xs text-white/90 lg:px-8">
+          {failure}
         </div>
       )}
 

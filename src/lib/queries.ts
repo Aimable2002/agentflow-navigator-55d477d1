@@ -369,8 +369,10 @@ export function useJobWatcher() {
   const { user } = useSession();
   const qc = useQueryClient();
   const [watching, setWatching] = useState<{ jobId: string; taskId: string; conversationId: string }[]>([]);
+  const [failure, setFailure] = useState<string | null>(null);
 
   const watch = useCallback((entry: { jobId: string; taskId: string; conversationId: string }) => {
+    setFailure(null);
     setWatching((w) => (w.some((x) => x.jobId === entry.jobId) ? w : [...w, entry]));
   }, []);
 
@@ -411,7 +413,8 @@ export function useJobWatcher() {
               .eq("id", entry.taskId);
             await logTask(entry.taskId, "done", "Agent run completed.");
           } else {
-            const detail = job.error ?? "The agent run failed.";
+            const failureMessage = "The agent run failed. Please try again.";
+            setFailure(failureMessage);
             await supabase
               .from("tasks")
               .update({
@@ -420,7 +423,7 @@ export function useJobWatcher() {
                 finished_at: new Date().toISOString(),
               })
               .eq("id", entry.taskId);
-            await logTask(entry.taskId, "error", detail);
+            await logTask(entry.taskId, "error", failureMessage);
           }
 
           setWatching((w) => w.filter((x) => x.jobId !== entry.jobId));
@@ -441,7 +444,7 @@ export function useJobWatcher() {
     };
   }, [watching, user, qc]);
 
-  return { watch, pending: watching.length };
+  return { watch, pending: watching.length, failure };
 }
 
 /* ------------------------------------------------------------------- usage */
