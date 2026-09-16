@@ -26,7 +26,7 @@ const markdownComponents = {
   blockquote: ({ children }: { children?: React.ReactNode }) => (
     <blockquote className="border-l-2 border-pink/60 pl-4 text-fog">{children}</blockquote>
   ),
-  a: ({ children, href }: { children?: React.ReactNode; href?: string }) => (
+  a: ({ children, href }: { children?: React.ReactNode; href?: string | undefined }) => (
     <a
       href={href}
       target="_blank"
@@ -36,7 +36,13 @@ const markdownComponents = {
       {children}
     </a>
   ),
-  code: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+  code: ({
+    children,
+    className,
+  }: {
+    children?: React.ReactNode;
+    className?: string | undefined;
+  }) => (
     <code
       className={cn("rounded bg-panel px-1.5 py-0.5 font-mono text-[0.9em] text-mint", className)}
     >

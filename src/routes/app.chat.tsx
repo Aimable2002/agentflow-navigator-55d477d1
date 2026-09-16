@@ -1,6 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp, Check, Loader2, Wrench } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import "highlight.js/styles/github-dark.css";
 import { MarkdownContent } from "@/components/app/markdown-content";
 import { InlineTaskCard, TierBadge } from "@/components/pink/primitives";
@@ -120,6 +128,9 @@ function Chat() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [modeOverride, setModeOverride] = useState<ChatMode | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  // null = every connected tool is in scope; an array is an explicit choice.
+  const [selectedIds, setSelectedIds] = useState<string[] | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   const { data } = useConversation(conversationId ?? "");
@@ -130,7 +141,10 @@ function Chat() {
 
   const messages = data?.messages ?? [];
   const connected = connectors.filter((c) => c.connected);
-  const mode: ChatMode = modeOverride ?? (connected.length > 0 ? "agent" : "chat");
+  const connectedIds = connected.map((c) => c.id);
+  const selected: string[] =
+    selectedIds === null ? connectedIds : selectedIds.filter((id) => connectedIds.includes(id));
+  const mode: ChatMode = modeOverride ?? (selected.length > 0 ? "agent" : "chat");
   const running = tasks.filter((t) => t.status === "running" || t.status === "queued");
 
   useEffect(() => {
@@ -145,7 +159,7 @@ function Chat() {
       const result = await sendMessage.mutateAsync({
         prompt,
         conversationId: conversationId ?? null,
-        connectors: connected.map((c) => c.id),
+        connectors: selected,
         mode,
       });
       if (!conversationId) {
@@ -172,10 +186,10 @@ function Chat() {
           <h1 className="truncate font-display text-lg font-semibold">
             {data?.conversation?.title ?? "New conversation"}
           </h1>
-          <p className="font-mono text-[11px] text-mute">
+          <p className="truncate font-mono text-[11px] text-mute">
             {conversationId ? `${shortId(conversationId, "CNV")} · ` : ""}
             {connected.length
-              ? `connectors in scope: ${connected.map((c) => c.name).join(", ")}`
+              ? `${selected.length} of ${connected.length} tools in scope`
               : "no tools connected yet"}
           </p>
         </div>
@@ -284,7 +298,7 @@ function Chat() {
               placeholder="Describe the outcome you want. The agent picks the tier and the tools."
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-mute focus:outline-none"
             />
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <div className="flex rounded-md border border-line p-0.5" aria-label="Request mode">
                 {(["chat", "agent"] as const).map((option) => (
                   <button
@@ -304,24 +318,91 @@ function Chat() {
               <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
                 Tier: auto
               </span>
-              <div className="flex flex-wrap gap-1">
-                {connected.map((c) => (
-                  <span
-                    key={c.id}
-                    className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-fog"
-                  >
-                    {c.name}
-                  </span>
-                ))}
-                {connected.length === 0 && (
-                  <Link
-                    to="/app/connectors"
-                    className="font-mono text-[10px] text-pink hover:underline"
-                  >
-                    connect a tool →
-                  </Link>
-                )}
-              </div>
+              {connected.length === 0 ? (
+                <Link
+                  to="/app/connectors"
+                  className="font-mono text-[10px] text-pink hover:underline"
+                >
+                  connect a tool →
+                </Link>
+              ) : (
+                <Dialog open={toolsOpen} onOpenChange={setToolsOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex shrink-0 items-center gap-1.5 rounded-md border border-line px-2 py-1 font-mono text-[10px] uppercase tracking-[0.1em] text-fog transition-colors hover:border-pink/40 hover:text-white"
+                    >
+                      <Wrench className="size-3" />
+                      Tools · {selected.length}/{connected.length}
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md border-line bg-ink2">
+                    <DialogHeader>
+                      <DialogTitle className="font-display">Tools in scope</DialogTitle>
+                      <DialogDescription className="text-fog">
+                        The agent may call any tool you leave enabled for this request.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[50vh] space-y-1 overflow-y-auto pr-1">
+                      {connected.map((c) => {
+                        const on = selected.includes(c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() =>
+                              setSelectedIds(
+                                on
+                                  ? selected.filter((id) => id !== c.id)
+                                  : [...selected, c.id],
+                              )
+                            }
+                            aria-pressed={on}
+                            className="flex w-full items-center gap-3 rounded-md border border-line px-3 py-2.5 text-left transition-colors hover:bg-panel/60"
+                          >
+                            <span
+                              className={cn(
+                                "grid size-4 shrink-0 place-items-center rounded border",
+                                on ? "border-pink bg-pink text-ink" : "border-line text-transparent",
+                              )}
+                            >
+                              <Check className="size-3" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm text-white">{c.name}</span>
+                              <span className="block truncate font-mono text-[10px] text-mute">
+                                {c.category} · {c.status}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2 border-t border-line pt-3">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIds(connected.map((c) => c.id))}
+                        className="font-mono text-[10px] uppercase tracking-[0.1em] text-fog hover:text-white"
+                      >
+                        Select all
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedIds([])}
+                        className="font-mono text-[10px] uppercase tracking-[0.1em] text-fog hover:text-white"
+                      >
+                        Clear
+                      </button>
+                      <Link
+                        to="/app/connectors"
+                        className="ml-auto font-mono text-[10px] text-pink hover:underline"
+                      >
+                        manage connectors →
+                      </Link>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              )}
               <button
                 type="submit"
                 aria-label="Send message"

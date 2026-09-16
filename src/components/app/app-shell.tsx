@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Logo, ActivityBars, Meter, StatusPill, TierBadge } from "@/components/pink/primitives";
 import { useProfile, useTasks } from "@/lib/queries";
 import { initials, signOut, useSession } from "@/lib/auth";
@@ -211,6 +212,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
           <div className="ml-auto flex items-center gap-3">
             <TaskActivityIndicator />
+            <ThemeToggle />
             <Link
               to="/app/settings/notifications"
               aria-label="Notification preferences"
