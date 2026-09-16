@@ -67,11 +67,25 @@ export type JobStatusResponse = {
   status: "pending" | "done" | "failed" | string;
   data?: {
     final_message?: string;
+    message?: string;
+    content?: string;
     tier?: "small" | "medium" | "best";
     steps?: AgentStep[];
   };
   error?: string;
 };
+
+function record(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function terminalStatus(value: unknown): JobStatusResponse["status"] {
+  const status = String(value ?? "").toLowerCase();
+  if (["done", "completed", "complete", "success", "succeeded"].includes(status)) return "done";
+  if (["failed", "failure", "error", "errored"].includes(status)) return "failed";
+  if (["cancelled", "canceled", "revoked"].includes(status)) return "cancelled";
+  return "pending";
+}
 
 export type ApiHistoryMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -96,7 +110,29 @@ export async function startChat(input: {
 /** GET /v1/chat/{job_id} — polls a queued run. */
 export async function getJob(jobId: string) {
   const result = await getJobFn({ data: { jobId } });
-  return unwrap<JobStatusResponse>(result as ProxyResult);
+  const body = unwrap<Record<string, unknown>>(result as ProxyResult);
+  const payload = record(body["data"] ?? body["result"]);
+  const message = [
+    payload["final_message"],
+    payload["message"],
+    payload["content"],
+    body["final_message"],
+    body["message"],
+    body["content"],
+  ].find((value): value is string => typeof value === "string" && value.length > 0);
+  const data: JobStatusResponse["data"] = {
+    ...(message ? { final_message: message } : {}),
+    ...(payload["tier"] === "small" || payload["tier"] === "medium" || payload["tier"] === "best"
+      ? { tier: payload["tier"] }
+      : {}),
+    ...(Array.isArray(payload["steps"]) ? { steps: payload["steps"] as AgentStep[] } : {}),
+  };
+
+  return {
+    status: terminalStatus(body["status"] ?? body["state"] ?? payload["status"]),
+    ...(Object.keys(data).length ? { data } : {}),
+    ...(typeof body["error"] === "string" ? { error: body["error"] } : {}),
+  } satisfies JobStatusResponse;
 }
 
 /** POST /v1/chat/{job_id}/cancel — requests cancellation of a queued run. */
@@ -153,4 +189,6 @@ export const whatsappDisconnect = async () =>
   unwrap<{ connected: boolean }>((await whatsappDisconnectFn()) as ProxyResult);
 
 export const whatsappSendTest = async (message?: string) =>
-  unwrap<{ result: string }>((await whatsappSendTestFn({ data: { message } })) as ProxyResult);
+  unwrap<{ result: string }>(
+    (await whatsappSendTestFn({ data: { message: message ?? "This is a test alert." } })) as ProxyResult,
+  );

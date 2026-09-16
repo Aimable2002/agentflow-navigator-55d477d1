@@ -83,6 +83,7 @@ export function useConnectorCatalog() {
 export function useConnectors() {
   const { user } = useSession();
   const catalog = useConnectorCatalog();
+  const telegram = useTelegramStatus();
 
   const connections = useQuery({
     queryKey: ["mcp-connections", user?.id],
@@ -97,17 +98,18 @@ export function useConnectors() {
     const byId = new Map((connections.data ?? []).map((c) => [c.connector_id, c]));
     return rows.map((c) => {
       const connection = byId.get(c.id) ?? null;
-      const connected = !!connection && connection.status !== "disconnected";
+      const nativeConnected = c.id === "telegram" && telegram.data?.connected === true;
+      const connected = nativeConnected || (!!connection && connection.status !== "disconnected");
       return {
         ...c,
         connection,
         connected,
-        status: connection?.status ?? "disconnected",
+        status: nativeConnected ? "connected" : connection?.status ?? "disconnected",
         transport: connection?.transport ?? c.default_transport,
         scopes: (connection?.scopes?.length ? connection.scopes : c.scopes) as ConnectorScope[],
       };
     });
-  }, [catalog.data, connections.data]);
+  }, [catalog.data, connections.data, telegram.data]);
 
   return {
     data,
