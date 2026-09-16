@@ -76,7 +76,7 @@ function TaskDetail() {
               type="button"
               disabled={cancel.isPending}
               onClick={() =>
-                cancel.mutate(t.id, {
+                cancel.mutate(t, {
                   onSuccess: () => toast.success("Task cancelled"),
                   onError: (e) => toast.error(e instanceof Error ? e.message : "Could not cancel the task."),
                 })

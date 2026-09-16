@@ -15,6 +15,7 @@
  * polls the job until it resolves.
  */
 import {
+  cancelJobFn,
   getJobFn,
   healthFn,
   PINK_API_URL,
@@ -96,6 +97,12 @@ export async function startChat(input: {
 export async function getJob(jobId: string) {
   const result = await getJobFn({ data: { jobId } });
   return unwrap<JobStatusResponse>(result as ProxyResult);
+}
+
+/** POST /v1/chat/{job_id}/cancel — requests cancellation of a queued run. */
+export async function cancelJob(jobId: string) {
+  const result = await cancelJobFn({ data: { jobId } });
+  return unwrap<Record<string, unknown>>(result as ProxyResult);
 }
 
 /** GET /healthz */

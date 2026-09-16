@@ -72,6 +72,11 @@ export const getJobFn = createServerFn({ method: "POST" })
   .inputValidator((input: { jobId: string }) => input)
   .handler(({ data }) => callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}`, { method: "GET" }));
 
+/** POST /v1/chat/{job_id}/cancel — requests cancellation of a queued run. */
+export const cancelJobFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { jobId: string }) => input)
+  .handler(({ data }) => callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}/cancel`, { method: "POST" }));
+
 /** GET /healthz — backend liveness. */
 export const healthFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/healthz", { method: "GET" }),

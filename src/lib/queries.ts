@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getJob, startChat, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
+import { cancelJob, getJob, startChat, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -251,13 +251,15 @@ export function useTask(taskId: string) {
 export function useCancelTask() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (taskId: string) => {
+    mutationFn: async (task: Pick<Task, "id" | "job_id">) => {
+      if (!task.job_id) throw new Error("This task has no backend job to cancel.");
+      await cancelJob(task.job_id);
       const res = await supabase
         .from("tasks")
         .update({ status: "cancelled", finished_at: new Date().toISOString() })
-        .eq("id", taskId);
+        .eq("id", task.id);
       if (res.error) throw new Error(res.error.message);
-      await supabase.from("task_logs").insert({ task_id: taskId, level: "warn", message: "Cancelled by user." });
+      await supabase.from("task_logs").insert({ task_id: task.id, level: "warn", message: "Cancelled by user." });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["task"] });
@@ -380,7 +382,9 @@ export function useJobWatcher() {
           const job = await getJob(entry.jobId);
           if (job.status === "pending" || cancelled) continue;
 
-          if (job.status === "done") {
+          if (job.status === "cancelled" || job.status === "revoked") {
+            setWatching((w) => w.filter((x) => x.jobId !== entry.jobId));
+          } else if (job.status === "done") {
             const content = job.data?.final_message ?? "The agent finished but returned no text.";
             const steps: AgentStep[] = job.data?.steps ?? [];
             const tier: Tier = job.data?.tier ?? "medium";
