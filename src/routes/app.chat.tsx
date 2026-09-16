@@ -298,7 +298,7 @@ function Chat() {
               placeholder="Describe the outcome you want. The agent picks the tier and the tools."
               className="w-full resize-none bg-transparent text-sm text-white placeholder:text-mute focus:outline-none"
             />
-            <div className="flex items-center gap-2 pt-2">
+            <div className="flex flex-wrap items-center gap-2 pt-2">
               <div className="flex rounded-md border border-line p-0.5" aria-label="Request mode">
                 {(["chat", "agent"] as const).map((option) => (
                   <button
