@@ -195,3 +195,62 @@
 @utility glow-pink {
   box-shadow: var(--glow-pink);
 }
+
+/*
+ * Light mode. Dark is the default (`:root` above); adding `.light` on <html>
+ * re-points the same tokens at a paper palette so every component follows
+ * without touching component code.
+ */
+html.light {
+  --ink: oklch(0.985 0.002 285.1);
+  --ink2: oklch(1 0 0);
+  --panel: oklch(0.965 0.005 285);
+  --line: oklch(0.905 0.008 285);
+  --fog: oklch(0.44 0.02 285.7);
+  --mute: oklch(0.58 0.02 285.2);
+  --pink: oklch(0.58 0.226 3);
+  --pinkdeep: oklch(0.48 0.2 5.8);
+  --mint: oklch(0.55 0.13 168.8);
+  --amber: oklch(0.6 0.14 66);
+  --violet: oklch(0.5 0.19 287.4);
+
+  --foreground: oklch(0.19 0.012 285.5);
+  --card-foreground: var(--foreground);
+  --popover-foreground: var(--foreground);
+  --primary-foreground: oklch(1 0 0);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --muted-foreground: var(--fog);
+  --destructive: oklch(0.52 0.2 22);
+
+  --shadow-console: 0 24px 70px -34px oklch(0.2 0.02 285 / 0.28);
+  --glow-pink: 0 0 24px -4px oklch(0.58 0.226 3 / 0.35);
+}
+
+/*
+ * Compatibility layer: the app was written dark-first and uses `white` as its
+ * "primary foreground" utility. In light mode those utilities are re-pointed
+ * at the foreground token instead of literal white.
+ */
+html.light [class~="text-white"] {
+  color: var(--foreground);
+}
+html.light [class~="text-white/90"] {
+  color: color-mix(in oklch, var(--foreground) 90%, transparent);
+}
+html.light [class~="text-white/80"] {
+  color: color-mix(in oklch, var(--foreground) 80%, transparent);
+}
+html.light [class~="text-white/70"] {
+  color: color-mix(in oklch, var(--foreground) 70%, transparent);
+}
+html.light [class~="hover:text-white"]:hover {
+  color: var(--foreground);
+}
+html.light [class~="text-ink"] {
+  color: oklch(1 0 0);
+}
+html.light [class~="bg-white"],
+html.light [class~="hover:bg-white"]:hover {
+  background-color: var(--pinkdeep);
+}
