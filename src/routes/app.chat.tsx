@@ -186,10 +186,10 @@ function Chat() {
           <h1 className="truncate font-display text-lg font-semibold">
             {data?.conversation?.title ?? "New conversation"}
           </h1>
-          <p className="font-mono text-[11px] text-mute">
+          <p className="truncate font-mono text-[11px] text-mute">
             {conversationId ? `${shortId(conversationId, "CNV")} · ` : ""}
             {connected.length
-              ? `connectors in scope: ${connected.map((c) => c.name).join(", ")}`
+              ? `${selected.length} of ${connected.length} tools in scope`
               : "no tools connected yet"}
           </p>
         </div>
