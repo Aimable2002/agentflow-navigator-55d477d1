@@ -2,7 +2,18 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Panel, StatusPill, TierBadge } from "@/components/pink/primitives";
-import { useConnector, useDisconnectConnector, useSaveConnection, useTasks } from "@/lib/queries";
+import {
+  useConnector,
+  useDisconnectConnector,
+  useDisconnectWhatsApp,
+  useSaveConnection,
+  useSaveWhatsAppCredentials,
+  useSendWhatsAppTest,
+  useTasks,
+  useTelegramLogin,
+  useTelegramStatus,
+  useWhatsAppStatus,
+} from "@/lib/queries";
 import { relativeTime, shortId, taskDuration } from "@/lib/format";
 import type { ConnectorScope, McpTransport } from "@/lib/types";
 
@@ -398,18 +409,28 @@ const specialField =
   "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2.5 text-sm text-white outline-none focus:border-pink";
 
 function TelegramOnboarding({ connector }: SpecialConnectorProps) {
+  const { data: status, isLoading: statusLoading } = useTelegramStatus();
+  const { start, verify, submitPassword, disconnect } = useTelegramLogin();
+
   const [step, setStep] = useState<"phone" | "code" | "password" | "ready">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
+
+  const alreadyConnected = !statusLoading && status?.connected;
 
   const submitPhone = () => {
     if (!phone.trim()) {
       toast.error("Enter the phone number linked to Telegram.");
       return;
     }
-    setStep("code");
-    toast.success("Telegram sent a login code to your account.");
+    start.mutate(phone, {
+      onSuccess: () => {
+        setStep("code");
+        toast.success("Telegram sent a login code to your account.");
+      },
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Could not send login code."),
+    });
   };
 
   const submitCode = () => {
@@ -417,8 +438,30 @@ function TelegramOnboarding({ connector }: SpecialConnectorProps) {
       toast.error("Enter the Telegram login code.");
       return;
     }
-    setStep("password");
+    verify.mutate(code, {
+      onSuccess: (res) => {
+        if (res.step === "password") {
+          setStep("password");
+        } else {
+          setStep("ready");
+          toast.success("Telegram connected.");
+        }
+      },
+      onError: (err) => toast.error(err instanceof Error ? err.message : "That code was incorrect."),
+    });
   };
+
+  const finishPassword = () => {
+    submitPassword.mutate(password, {
+      onSuccess: () => {
+        setStep("ready");
+        toast.success("Telegram connected.");
+      },
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Incorrect password."),
+    });
+  };
+
+  const busy = start.isPending || verify.isPending || submitPassword.isPending;
 
   return (
     <div className="p-4 lg:p-8">
@@ -444,48 +487,67 @@ function TelegramOnboarding({ connector }: SpecialConnectorProps) {
           </div>
 
           <div className="mt-6">
-            {step === "phone" && (
-              <div>
-                <label className="block text-sm">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Phone number</span>
-                  <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
-                </label>
-                <button type="button" onClick={submitPhone} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
-                  Send login code
-                </button>
-              </div>
-            )}
-
-            {step === "code" && (
-              <div>
-                <label className="block text-sm">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Login code</span>
-                  <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="12345" inputMode="numeric" autoComplete="one-time-code" className={specialField} />
-                </label>
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <button type="button" onClick={submitCode} className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">Verify code</button>
-                  <button type="button" onClick={() => setStep("phone")} className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2">Change number</button>
-                </div>
-              </div>
-            )}
-
-            {step === "password" && (
-              <div>
-                <label className="block text-sm">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Two-step verification password <span className="normal-case tracking-normal">(optional)</span></span>
-                  <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Only if Telegram asks for it" className={specialField} />
-                </label>
-                <button type="button" onClick={() => setStep("ready")} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
-                  Finish Telegram setup
-                </button>
-              </div>
-            )}
-
-            {step === "ready" && (
+            {alreadyConnected && step === "phone" ? (
               <div className="rounded-md border border-mint/30 bg-mint/5 p-4">
-                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mint">Login captured</p>
-                <p className="mt-2 text-sm text-fog">Your secure Telegram session will be attached to this account when the session service is enabled.</p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mint">
+                  Connected{status?.phone ? ` — ${status.phone}` : ""}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => disconnect.mutate()}
+                  className="mt-3 rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2"
+                >
+                  Disconnect Telegram
+                </button>
               </div>
+            ) : (
+              <>
+                {step === "phone" && (
+                  <div>
+                    <label className="block text-sm">
+                      <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Phone number</span>
+                      <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
+                    </label>
+                    <button type="button" disabled={busy} onClick={submitPhone} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50">
+                      {start.isPending ? "Sending…" : "Send login code"}
+                    </button>
+                  </div>
+                )}
+
+                {step === "code" && (
+                  <div>
+                    <label className="block text-sm">
+                      <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Login code</span>
+                      <input value={code} onChange={(event) => setCode(event.target.value)} placeholder="12345" inputMode="numeric" autoComplete="one-time-code" className={specialField} />
+                    </label>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <button type="button" disabled={busy} onClick={submitCode} className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50">
+                        {verify.isPending ? "Verifying…" : "Verify code"}
+                      </button>
+                      <button type="button" onClick={() => setStep("phone")} className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2">Change number</button>
+                    </div>
+                  </div>
+                )}
+
+                {step === "password" && (
+                  <div>
+                    <label className="block text-sm">
+                      <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Two-step verification password</span>
+                      <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Required because this account has 2FA enabled" className={specialField} />
+                    </label>
+                    <button type="button" disabled={busy} onClick={finishPassword} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50">
+                      {submitPassword.isPending ? "Verifying…" : "Finish Telegram setup"}
+                    </button>
+                  </div>
+                )}
+
+                {step === "ready" && (
+                  <div className="rounded-md border border-mint/30 bg-mint/5 p-4">
+                    <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mint">Connected</p>
+                    <p className="mt-2 text-sm text-fog">Your Telegram session is encrypted and stored against this account.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Panel>
@@ -504,48 +566,94 @@ function TelegramOnboarding({ connector }: SpecialConnectorProps) {
 }
 
 function WhatsAppOnboarding({ connector }: SpecialConnectorProps) {
-  const [phone, setPhone] = useState("");
-  const [label, setLabel] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const { data: status, isLoading: statusLoading } = useWhatsAppStatus();
+  const save = useSaveWhatsAppCredentials();
+  const disconnect = useDisconnectWhatsApp();
+  const sendTest = useSendWhatsAppTest();
+
+  const [accessToken, setAccessToken] = useState("");
+  const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [businessAccountId, setBusinessAccountId] = useState("");
+  const [alertRecipient, setAlertRecipient] = useState("");
+
+  const connected = !statusLoading && status?.connected;
 
   const startSetup = () => {
-    if (!phone.trim()) {
-      toast.error("Enter the WhatsApp number that should receive alerts.");
+    if (!accessToken.trim() || !phoneNumberId.trim() || !businessAccountId.trim() || !alertRecipient.trim()) {
+      toast.error("Fill in all four fields from your Meta Business Suite WhatsApp setup.");
       return;
     }
-    setSubmitted(true);
-    toast.success("WhatsApp number ready for Meta setup.");
+    save.mutate(
+      { access_token: accessToken, phone_number_id: phoneNumberId, business_account_id: businessAccountId, alert_recipient: alertRecipient },
+      {
+        onSuccess: () => toast.success("WhatsApp connected."),
+        onError: (err) => toast.error(err instanceof Error ? err.message : "Could not save WhatsApp credentials."),
+      },
+    );
   };
 
   return (
     <div className="p-4 lg:p-8">
       <SpecialConnectorHeader
         connector={connector}
-        copy="Choose the number that should receive agent alerts. WhatsApp is send-only, so no messages are read from this account."
+        copy="Send-only alerts via the official WhatsApp Cloud API. Reading your existing chats, groups or communities isn't supported by Meta's Business API, so this connector never does that."
       />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Panel>
-          <h2 className="font-display text-lg font-semibold">Connect your number</h2>
-          <p className="mt-1 text-sm text-fog">Meta will verify the number before alerts can be delivered.</p>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">WhatsApp number</span>
-              <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
-            </label>
-            <label className="block text-sm">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Label</span>
-              <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Personal alerts" className={specialField} />
-            </label>
-          </div>
-          {submitted && (
-            <p className="mt-4 rounded-md border border-amber/30 bg-amber/5 px-3 py-2 font-mono text-[11px] text-amber">
-              Meta embedded signup will open here once this workspace has its WhatsApp Business app configured.
-            </p>
+          <h2 className="font-display text-lg font-semibold">Connect your WhatsApp Business number</h2>
+          <p className="mt-1 text-sm text-fog">
+            From Meta Business Suite → WhatsApp → API Setup: a System User access token, your Phone Number ID, and your
+            WhatsApp Business Account ID.
+          </p>
+
+          {connected ? (
+            <div className="mt-5 rounded-md border border-mint/30 bg-mint/5 p-4">
+              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mint">
+                Connected{status?.alert_recipient ? ` — alerts to ${status.alert_recipient}` : ""}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => sendTest.mutate(undefined, {
+                    onSuccess: () => toast.success("Test alert sent."),
+                    onError: (err) => toast.error(err instanceof Error ? err.message : "Test send failed."),
+                  })}
+                  disabled={sendTest.isPending}
+                  className="rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50"
+                >
+                  {sendTest.isPending ? "Sending…" : "Send test alert"}
+                </button>
+                <button type="button" onClick={() => disconnect.mutate()} className="rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2">
+                  Disconnect
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <label className="block text-sm sm:col-span-2">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">System User access token</span>
+                  <input type="password" value={accessToken} onChange={(event) => setAccessToken(event.target.value)} placeholder="EAAG…" className={specialField} />
+                </label>
+                <label className="block text-sm">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Phone Number ID</span>
+                  <input value={phoneNumberId} onChange={(event) => setPhoneNumberId(event.target.value)} placeholder="1029384756" className={specialField} />
+                </label>
+                <label className="block text-sm">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Business Account ID</span>
+                  <input value={businessAccountId} onChange={(event) => setBusinessAccountId(event.target.value)} placeholder="1029384756" className={specialField} />
+                </label>
+                <label className="block text-sm sm:col-span-2">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Number to receive alerts</span>
+                  <input value={alertRecipient} onChange={(event) => setAlertRecipient(event.target.value)} placeholder="+44 7700 900000" inputMode="tel" className={specialField} />
+                </label>
+              </div>
+              <button type="button" disabled={save.isPending} onClick={startSetup} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white disabled:opacity-50">
+                {save.isPending ? "Connecting…" : "Connect WhatsApp"}
+              </button>
+            </>
           )}
-          <button type="button" onClick={startSetup} className="mt-5 rounded-md bg-pink px-4 py-2.5 text-sm font-medium text-ink hover:bg-white">
-            Continue with Meta setup
-          </button>
         </Panel>
 
         <Panel>
@@ -553,7 +661,7 @@ function WhatsAppOnboarding({ connector }: SpecialConnectorProps) {
           <ul className="mt-4 space-y-3 text-sm text-fog">
             <li className="border-l-2 border-mint pl-3">Task completion and failure notifications.</li>
             <li className="border-l-2 border-mint pl-3">Signal alerts that clear your confidence threshold.</li>
-            <li className="border-l-2 border-line pl-3">No inbound messages or contact history.</li>
+            <li className="border-l-2 border-line pl-3">No inbound messages, no chat/group/community reading.</li>
           </ul>
         </Panel>
       </div>

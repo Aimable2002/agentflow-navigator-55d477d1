@@ -76,3 +76,63 @@ export const getJobFn = createServerFn({ method: "POST" })
 export const healthFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/healthz", { method: "GET" }),
 );
+
+/* ------------------------------------------------------------- telegram
+ * Telegram has no generic form to fill in -- these proxy the real
+ * interactive OTP login flow (phone -> code -> optional 2FA password),
+ * replacing what used to be purely local, fake UI state.
+ */
+
+export const telegramStatusFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend("/v1/telegram/status", { method: "GET" }),
+);
+
+export const telegramStartFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { phone: string }) => input)
+  .handler(({ data }) =>
+    callBackend("/v1/telegram/start", { method: "POST", body: JSON.stringify({ phone: data.phone }) }),
+  );
+
+export const telegramVerifyFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string }) => input)
+  .handler(({ data }) =>
+    callBackend("/v1/telegram/verify", { method: "POST", body: JSON.stringify({ code: data.code }) }),
+  );
+
+export const telegramTwoFaFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { password: string }) => input)
+  .handler(({ data }) =>
+    callBackend("/v1/telegram/2fa", { method: "POST", body: JSON.stringify({ password: data.password }) }),
+  );
+
+export const telegramDisconnectFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend("/v1/telegram", { method: "DELETE" }),
+);
+
+/* ------------------------------------------------------------- whatsapp
+ * WhatsApp's real credential shape is three values plus a recipient
+ * number, not a single bearer token -- these route through the backend
+ * (service role) rather than a direct browser upsert, so the access
+ * token is never round-tripped through client-side Supabase calls.
+ */
+
+export const whatsappStatusFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend("/v1/whatsapp/status", { method: "GET" }),
+);
+
+export const whatsappSaveCredentialsFn = createServerFn({ method: "POST" })
+  .inputValidator(
+    (input: { access_token: string; phone_number_id: string; business_account_id: string; alert_recipient: string }) =>
+      input,
+  )
+  .handler(({ data }) => callBackend("/v1/whatsapp/credentials", { method: "PUT", body: JSON.stringify(data) }));
+
+export const whatsappDisconnectFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend("/v1/whatsapp/credentials", { method: "DELETE" }),
+);
+
+export const whatsappSendTestFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { message?: string }) => input)
+  .handler(({ data }) =>
+    callBackend("/v1/whatsapp/test", { method: "POST", body: JSON.stringify({ message: data.message ?? "This is a test alert." }) }),
+  );

@@ -14,7 +14,21 @@
  * The frontend persists conversations, messages and tasks in Supabase and
  * polls the job until it resolves.
  */
-import { getJobFn, healthFn, PINK_API_URL, startChatFn } from "@/lib/pink.functions";
+import {
+  getJobFn,
+  healthFn,
+  PINK_API_URL,
+  startChatFn,
+  telegramDisconnectFn,
+  telegramStartFn,
+  telegramStatusFn,
+  telegramTwoFaFn,
+  telegramVerifyFn,
+  whatsappDisconnectFn,
+  whatsappSaveCredentialsFn,
+  whatsappSendTestFn,
+  whatsappStatusFn,
+} from "@/lib/pink.functions";
 
 export { PINK_API_URL };
 
@@ -89,3 +103,47 @@ export async function apiHealth() {
   const result = await healthFn();
   return unwrap<{ status: string }>(result as ProxyResult);
 }
+
+/* ------------------------------------------------------------- telegram */
+
+export type TelegramStatus = {
+  connected: boolean;
+  phone?: string;
+  monitored_chats?: unknown[];
+  last_error?: string;
+};
+
+export type TelegramStep = { step: "code" | "password" | "ready" };
+
+export const telegramStatus = async () => unwrap<TelegramStatus>((await telegramStatusFn()) as ProxyResult);
+
+export const telegramStart = async (phone: string) =>
+  unwrap<TelegramStep>((await telegramStartFn({ data: { phone } })) as ProxyResult);
+
+export const telegramVerify = async (code: string) =>
+  unwrap<TelegramStep>((await telegramVerifyFn({ data: { code } })) as ProxyResult);
+
+export const telegramTwoFa = async (password: string) =>
+  unwrap<TelegramStep>((await telegramTwoFaFn({ data: { password } })) as ProxyResult);
+
+export const telegramDisconnect = async () =>
+  unwrap<{ connected: boolean }>((await telegramDisconnectFn()) as ProxyResult);
+
+/* ------------------------------------------------------------- whatsapp */
+
+export type WhatsAppStatus = { connected: boolean; phone_number_id?: string; alert_recipient?: string };
+
+export const whatsappStatus = async () => unwrap<WhatsAppStatus>((await whatsappStatusFn()) as ProxyResult);
+
+export const whatsappSaveCredentials = async (input: {
+  access_token: string;
+  phone_number_id: string;
+  business_account_id: string;
+  alert_recipient: string;
+}) => unwrap<{ connected: boolean }>((await whatsappSaveCredentialsFn({ data: input })) as ProxyResult);
+
+export const whatsappDisconnect = async () =>
+  unwrap<{ connected: boolean }>((await whatsappDisconnectFn()) as ProxyResult);
+
+export const whatsappSendTest = async (message?: string) =>
+  unwrap<{ result: string }>((await whatsappSendTestFn({ data: { message } })) as ProxyResult);

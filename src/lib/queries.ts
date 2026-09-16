@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { getJob, startChat, type AgentStep, type ChatMode } from "@/lib/api";
+import { getJob, startChat, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -25,44 +25,16 @@ import type {
   UsageEvent,
 } from "@/lib/types";
 
-const disabledConnectorIds = new Set(["mt5", "xero", "lovable"]);
+// Removed from the connector *options* shown to users (same treatment as
+// mt5/xero/lovable below), while its catalog row and any existing
+// connections stay intact in the database in case this is revisited.
+const disabledConnectorIds = new Set(["mt5", "xero", "lovable", "hubspot"]);
 
-const frontendConnectorAdditions: CatalogConnector[] = [
-  {
-    id: "meta-ads",
-    name: "Meta Ads",
-    category: "Advertising",
-    tagline: "Campaigns, delivery and performance signals",
-    description:
-      "Connect Meta Ads to inspect campaign performance and keep Facebook and Instagram advertising work in one agent workflow.",
-    default_transport: "http",
-    default_server_url: "https://mcp.facebook.com/ads",
-    docs_url: null,
-    scopes: [
-      { key: "ads.read", label: "Read campaign data", detail: "Campaigns, ad sets, ads and delivery", granted: true },
-      { key: "insights.read", label: "Read performance insights", detail: "Spend, reach, clicks and conversions", granted: true },
-      { key: "ads.write", label: "Manage ads", detail: "Create or update campaigns and ads", granted: false },
-    ],
-    actions: ["Summarise campaign performance", "Compare Facebook and Instagram delivery", "Flag underperforming ad sets"],
-    sort_order: 60,
-  },
-  {
-    id: "whatsapp",
-    name: "WhatsApp",
-    category: "Messaging",
-    tagline: "Receive task and signal alerts on WhatsApp",
-    description:
-      "Connect a WhatsApp number for send-only alerts when tasks finish, fail, or a monitored signal clears its threshold.",
-    default_transport: "http",
-    default_server_url: null,
-    docs_url: null,
-    scopes: [
-      { key: "messages.send", label: "Send alerts", detail: "Deliver task and signal notifications", granted: true },
-    ],
-    actions: ["Send task completion alerts", "Send task failure alerts", "Send threshold-clearing signal alerts"],
-    sort_order: 80,
-  },
-];
+// meta-ads and whatsapp used to be faked in here because they weren't real
+// rows in connector_catalog -- saving a connection for either would fail
+// on the mcp_connections -> connector_catalog foreign key. They're now
+// real rows added by db/003_connector_config_fixes.sql, so nothing needs
+// to be synthesized client-side any more.
 
 function assertOk<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -99,12 +71,11 @@ export function useConnectorCatalog() {
   return useQuery({
     queryKey: ["connector-catalog"],
     queryFn: async () =>
-      [
-        ...(assertOk(
-        await supabase.from("connector_catalog").select("*").eq("is_active", true).order("sort_order"),
-        ) ?? []),
-        ...frontendConnectorAdditions,
-      ].filter((connector) => !disabledConnectorIds.has(connector.id)) as CatalogConnector[],
+      (
+        (assertOk(
+          await supabase.from("connector_catalog").select("*").eq("is_active", true).order("sort_order"),
+        ) ?? []) as CatalogConnector[]
+      ).filter((connector) => !disabledConnectorIds.has(connector.id)),
   });
 }
 
@@ -586,4 +557,71 @@ export function useUpdateNotificationPreferences() {
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["notification-prefs"] }),
   });
+}
+
+/* ------------------------------------------------------------- telegram
+ * Telegram has no generic form: these call the real interactive OTP flow
+ * on the backend (start -> verify -> optional 2fa), replacing what used
+ * to be local-only, fake onboarding state.
+ */
+
+export function useTelegramStatus() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["telegram-status", user?.id],
+    enabled: !!user,
+    queryFn: () => telegramStatus(),
+  });
+}
+
+export function useTelegramLogin() {
+  const qc = useQueryClient();
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["telegram-status"] });
+  return {
+    start: useMutation({ mutationFn: (phone: string) => telegramStart(phone) }),
+    verify: useMutation({ mutationFn: (code: string) => telegramVerify(code), onSuccess: invalidate }),
+    submitPassword: useMutation({ mutationFn: (password: string) => telegramTwoFa(password), onSuccess: invalidate }),
+    disconnect: useMutation({ mutationFn: () => telegramDisconnect(), onSuccess: invalidate }),
+  };
+}
+
+/* ------------------------------------------------------------- whatsapp
+ * WhatsApp's credentials (access token, phone number id, business account
+ * id, alert recipient) are saved through the backend, not a direct
+ * browser upsert into a Supabase table, so the access token never
+ * round-trips through client-side code.
+ */
+
+export function useWhatsAppStatus() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["whatsapp-status", user?.id],
+    enabled: !!user,
+    queryFn: () => whatsappStatus(),
+  });
+}
+
+export function useSaveWhatsAppCredentials() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      access_token: string;
+      phone_number_id: string;
+      business_account_id: string;
+      alert_recipient: string;
+    }) => whatsappSaveCredentials(input),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["whatsapp-status"] }),
+  });
+}
+
+export function useDisconnectWhatsApp() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => whatsappDisconnect(),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["whatsapp-status"] }),
+  });
+}
+
+export function useSendWhatsAppTest() {
+  return useMutation({ mutationFn: (message?: string) => whatsappSendTest(message) });
 }
