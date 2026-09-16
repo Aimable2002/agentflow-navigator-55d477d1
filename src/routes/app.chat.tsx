@@ -141,7 +141,10 @@ function Chat() {
 
   const messages = data?.messages ?? [];
   const connected = connectors.filter((c) => c.connected);
-  const mode: ChatMode = modeOverride ?? (connected.length > 0 ? "agent" : "chat");
+  const connectedIds = connected.map((c) => c.id);
+  const selected: string[] =
+    selectedIds === null ? connectedIds : selectedIds.filter((id) => connectedIds.includes(id));
+  const mode: ChatMode = modeOverride ?? (selected.length > 0 ? "agent" : "chat");
   const running = tasks.filter((t) => t.status === "running" || t.status === "queued");
 
   useEffect(() => {
