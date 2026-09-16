@@ -128,6 +128,9 @@ function Chat() {
   const navigate = useNavigate();
   const [draft, setDraft] = useState("");
   const [modeOverride, setModeOverride] = useState<ChatMode | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  // null = every connected tool is in scope; an array is an explicit choice.
+  const [selectedIds, setSelectedIds] = useState<string[] | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   const { data } = useConversation(conversationId ?? "");
