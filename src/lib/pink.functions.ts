@@ -141,3 +141,41 @@ export const whatsappSendTestFn = createServerFn({ method: "POST" })
   .handler(({ data }) =>
     callBackend("/v1/whatsapp/test", { method: "POST", body: JSON.stringify({ message: data.message ?? "This is a test alert." }) }),
   );
+/* ------------------------------------------------- agent services
+ * Persistent background workers (as opposed to connectors, which are
+ * tools the chat agent reaches for). Same proxy pattern: the browser
+ * cannot reach the backend directly, so these run same-origin and
+ * forward the caller's bearer token.
+ */
+
+const SERVICE = "/v1/agent-services/telegram-signal-monitor";
+
+/** GET /v1/telegram/chats — chats the connected Telegram account can see. */
+export const telegramChatsFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend("/v1/telegram/chats", { method: "GET" }),
+);
+
+/** GET the monitor's status + saved config. */
+export const signalMonitorStatusFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(SERVICE, { method: "GET" }),
+);
+
+/** PUT the monitor's config. */
+export const signalMonitorSaveFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { monitored_chats: string[]; min_confidence: number; alert_chat: string }) => input)
+  .handler(({ data }) => callBackend(SERVICE, { method: "PUT", body: JSON.stringify(data) }));
+
+/** POST activate — 400 when no chats are selected. */
+export const signalMonitorActivateFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${SERVICE}/activate`, { method: "POST" }),
+);
+
+/** POST pause. */
+export const signalMonitorPauseFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${SERVICE}/pause`, { method: "POST" }),
+);
+
+/** GET the recent scored signals. */
+export const signalMonitorSignalsFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${SERVICE}/signals`, { method: "GET" }),
+);
