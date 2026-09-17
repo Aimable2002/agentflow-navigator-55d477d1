@@ -9,6 +9,7 @@ import {
   MessageSquarePlus,
   MessagesSquare,
   Plug,
+  Radar,
   Settings,
   Bell,
   UserRound,
@@ -29,6 +30,7 @@ const primaryNav = [
   { to: "/app/conversations", label: "Conversations", icon: ListTree },
   { to: "/app/tasks", label: "Tasks", icon: Activity },
   { to: "/app/connectors", label: "Connectors", icon: Plug },
+  { to: "/app/agent-services", label: "Agent services", icon: Radar },
 ] as const;
 
 const accountNav = [
