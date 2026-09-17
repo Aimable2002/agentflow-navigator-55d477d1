@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelJob, getJob, startChat, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
+import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -633,4 +633,50 @@ export function useDisconnectWhatsApp() {
 
 export function useSendWhatsAppTest() {
   return useMutation({ mutationFn: (message?: string) => whatsappSendTest(message) });
+}
+/* ------------------------------------------------------------- agent services
+ * Persistent background workers. State lives on the backend, so these are
+ * plain queries/mutations against the proxy — no Supabase tables involved.
+ */
+
+export function useSignalMonitor() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["signal-monitor", user?.id],
+    enabled: !!user,
+    queryFn: () => signalMonitorStatus(),
+  });
+}
+
+export function useTelegramChats(enabled: boolean) {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["telegram-chats", user?.id],
+    enabled: !!user && enabled,
+    queryFn: () => telegramChats(),
+  });
+}
+
+export function useSignalMonitorSignals() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["signal-monitor-signals", user?.id],
+    enabled: !!user,
+    refetchInterval: 30_000,
+    queryFn: () => signalMonitorSignals(),
+  });
+}
+
+export function useSignalMonitorControls() {
+  const qc = useQueryClient();
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["signal-monitor"] });
+  return {
+    save: useMutation({
+      mutationFn: (config: { monitored_chats: string[]; min_confidence: number; alert_chat: string }) =>
+        signalMonitorSave(config),
+      onSuccess: invalidate,
+    }),
+    activate: useMutation({ mutationFn: () => signalMonitorActivate(), onSuccess: invalidate }),
+    pause: useMutation({ mutationFn: () => signalMonitorPause(), onSuccess: invalidate }),
+  };
 }

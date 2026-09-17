@@ -17,9 +17,15 @@
 import {
   cancelJobFn,
   getJobFn,
+  signalMonitorActivateFn,
+  signalMonitorPauseFn,
+  signalMonitorSaveFn,
+  signalMonitorSignalsFn,
+  signalMonitorStatusFn,
   healthFn,
   PINK_API_URL,
   startChatFn,
+  telegramChatsFn,
   telegramDisconnectFn,
   telegramStartFn,
   telegramStatusFn,
@@ -192,3 +198,53 @@ export const whatsappSendTest = async (message?: string) =>
   unwrap<{ result: string }>(
     (await whatsappSendTestFn({ data: { message: message ?? "This is a test alert." } })) as ProxyResult,
   );
+/* ------------------------------------------------- agent services */
+
+export type TelegramChat = {
+  id: string | number;
+  name: string;
+  is_group?: boolean;
+  is_channel?: boolean;
+  unread_count?: number;
+};
+
+export type SignalMonitorConfig = {
+  monitored_chats: string[];
+  min_confidence: number;
+  alert_chat: string;
+};
+
+export type SignalMonitorStatus = {
+  status: "active" | "paused" | string;
+  config: SignalMonitorConfig;
+  paused_reason?: string;
+};
+
+export type Signal = {
+  id: string;
+  channel: string;
+  raw_text: string;
+  confidence_score: number;
+  model_reasoning?: string;
+  alerted: boolean;
+  alert_error?: string | null;
+  created_at: string;
+};
+
+export const telegramChats = async () =>
+  unwrap<{ chats: TelegramChat[] }>((await telegramChatsFn()) as ProxyResult);
+
+export const signalMonitorStatus = async () =>
+  unwrap<SignalMonitorStatus>((await signalMonitorStatusFn()) as ProxyResult);
+
+export const signalMonitorSave = async (config: SignalMonitorConfig) =>
+  unwrap<Record<string, unknown>>((await signalMonitorSaveFn({ data: config })) as ProxyResult);
+
+export const signalMonitorActivate = async () =>
+  unwrap<Record<string, unknown>>((await signalMonitorActivateFn()) as ProxyResult);
+
+export const signalMonitorPause = async () =>
+  unwrap<Record<string, unknown>>((await signalMonitorPauseFn()) as ProxyResult);
+
+export const signalMonitorSignals = async () =>
+  unwrap<{ signals: Signal[] }>((await signalMonitorSignalsFn()) as ProxyResult);
