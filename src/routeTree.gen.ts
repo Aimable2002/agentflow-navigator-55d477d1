@@ -32,6 +32,8 @@ import { Route as AppBillingRouteImport } from './routes/app.billing'
 import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppUsageRouteImport } from './routes/app.usage'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
+import { Route as AppAgentServicesIndexRouteImport } from './routes/app.agent-services.index'
+import { Route as AppAgentServicesTelegramSignalMonitorRouteImport } from './routes/app.agent-services.telegram-signal-monitor'
 import { Route as AppConnectorsIndexRouteImport } from './routes/app.connectors.index'
 import { Route as AppConnectorsConnectorIdRouteImport } from './routes/app.connectors.$connectorId'
 import { Route as AppConversationsIndexRouteImport } from './routes/app.conversations.index'
@@ -157,6 +159,17 @@ const DocsSlugRoute = DocsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => DocsRoute,
 } as any)
+const AppAgentServicesIndexRoute = AppAgentServicesIndexRouteImport.update({
+  id: '/agent-services/',
+  path: '/agent-services/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAgentServicesTelegramSignalMonitorRoute =
+  AppAgentServicesTelegramSignalMonitorRouteImport.update({
+    id: '/agent-services/telegram-signal-monitor',
+    path: '/agent-services/telegram-signal-monitor',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConnectorsIndexRoute = AppConnectorsIndexRouteImport.update({
   id: '/connectors/',
   path: '/connectors/',
@@ -230,12 +243,14 @@ export interface FileRoutesByFullPath {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/agent-services/': typeof AppAgentServicesIndexRoute
   '/app/connectors/': typeof AppConnectorsIndexRoute
   '/app/conversations/': typeof AppConversationsIndexRoute
   '/app/tasks/': typeof AppTasksIndexRoute
@@ -263,12 +278,14 @@ export interface FileRoutesByTo {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app': typeof AppIndexRoute
+  '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/agent-services': typeof AppAgentServicesIndexRoute
   '/app/connectors': typeof AppConnectorsIndexRoute
   '/app/conversations': typeof AppConversationsIndexRoute
   '/app/tasks': typeof AppTasksIndexRoute
@@ -298,12 +315,14 @@ export interface FileRoutesById {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
   '/app/tasks/$taskId': typeof AppTasksTaskIdRoute
+  '/app/agent-services/': typeof AppAgentServicesIndexRoute
   '/app/connectors/': typeof AppConnectorsIndexRoute
   '/app/conversations/': typeof AppConversationsIndexRoute
   '/app/tasks/': typeof AppTasksIndexRoute
@@ -334,12 +353,14 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app/'
+    | '/app/agent-services/telegram-signal-monitor'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
     | '/app/settings/api-keys'
     | '/app/settings/notifications'
     | '/app/tasks/$taskId'
+    | '/app/agent-services/'
     | '/app/connectors/'
     | '/app/conversations/'
     | '/app/tasks/'
@@ -367,12 +388,14 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app'
+    | '/app/agent-services/telegram-signal-monitor'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
     | '/app/settings/api-keys'
     | '/app/settings/notifications'
     | '/app/tasks/$taskId'
+    | '/app/agent-services'
     | '/app/connectors'
     | '/app/conversations'
     | '/app/tasks'
@@ -401,12 +424,14 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app/'
+    | '/app/agent-services/telegram-signal-monitor'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
     | '/app/settings/api-keys'
     | '/app/settings/notifications'
     | '/app/tasks/$taskId'
+    | '/app/agent-services/'
     | '/app/connectors/'
     | '/app/conversations/'
     | '/app/tasks/'
@@ -596,6 +621,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocsSlugRouteImport
       parentRoute: typeof DocsRoute
     }
+    '/app/agent-services/': {
+      id: '/app/agent-services/'
+      path: '/agent-services'
+      fullPath: '/app/agent-services/'
+      preLoaderRoute: typeof AppAgentServicesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/agent-services/telegram-signal-monitor': {
+      id: '/app/agent-services/telegram-signal-monitor'
+      path: '/agent-services/telegram-signal-monitor'
+      fullPath: '/app/agent-services/telegram-signal-monitor'
+      preLoaderRoute: typeof AppAgentServicesTelegramSignalMonitorRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/connectors/': {
       id: '/app/connectors/'
       path: '/connectors'
@@ -667,12 +706,14 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppUsageRoute: typeof AppUsageRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAgentServicesTelegramSignalMonitorRoute: typeof AppAgentServicesTelegramSignalMonitorRoute
   AppConnectorsConnectorIdRoute: typeof AppConnectorsConnectorIdRoute
   AppConversationsConversationIdRoute: typeof AppConversationsConversationIdRoute
   AppSettingsAccountRoute: typeof AppSettingsAccountRoute
   AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
   AppTasksTaskIdRoute: typeof AppTasksTaskIdRoute
+  AppAgentServicesIndexRoute: typeof AppAgentServicesIndexRoute
   AppConnectorsIndexRoute: typeof AppConnectorsIndexRoute
   AppConversationsIndexRoute: typeof AppConversationsIndexRoute
   AppTasksIndexRoute: typeof AppTasksIndexRoute
@@ -683,12 +724,15 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppUsageRoute: AppUsageRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAgentServicesTelegramSignalMonitorRoute:
+    AppAgentServicesTelegramSignalMonitorRoute,
   AppConnectorsConnectorIdRoute: AppConnectorsConnectorIdRoute,
   AppConversationsConversationIdRoute: AppConversationsConversationIdRoute,
   AppSettingsAccountRoute: AppSettingsAccountRoute,
   AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
   AppTasksTaskIdRoute: AppTasksTaskIdRoute,
+  AppAgentServicesIndexRoute: AppAgentServicesIndexRoute,
   AppConnectorsIndexRoute: AppConnectorsIndexRoute,
   AppConversationsIndexRoute: AppConversationsIndexRoute,
   AppTasksIndexRoute: AppTasksIndexRoute,
