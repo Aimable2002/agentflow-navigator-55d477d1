@@ -41,10 +41,16 @@ async function callBackend(path: string, init: RequestInit): Promise<ProxyResult
   if (!response.ok) {
     let message = text || `Request failed (${response.status})`;
     try {
-      const parsed = JSON.parse(text) as { detail?: string };
-      if (parsed.detail) message = parsed.detail;
+      const parsed = JSON.parse(text) as { detail?: unknown };
+      if (typeof parsed.detail === "string") message = parsed.detail;
+      else if (Array.isArray(parsed.detail)) message = "The backend rejected this request.";
     } catch {
       /* keep the raw body */
+    }
+    // A 5xx carries no useful detail for the person reading it — the backend
+    // itself failed. Say that plainly instead of surfacing "Internal Server Error".
+    if (response.status >= 500) {
+      message = "This isn't available from the agent backend yet — it returned a server error, so there is nothing to show.";
     }
     return { ok: false, status: response.status, message };
   }
