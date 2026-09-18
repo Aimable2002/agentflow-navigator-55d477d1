@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
 import { Panel } from "@/components/pink/primitives";
-import { useSignalMonitor } from "@/lib/queries";
+import { useSignalMonitor, useTradingAgent } from "@/lib/queries";
 
 export const Route = createFileRoute("/app/agent-services/")({
   head: () => ({
@@ -92,8 +92,70 @@ function AgentServices() {
               Open
             </Link>
           </Panel>
+
+          <TradingAgentCard />
         </div>
       </div>
     </>
+  );
+}
+
+function TradingAgentCard() {
+  const { data } = useTradingAgent();
+  const config = data?.config;
+  const configured = !!config?.pair && !!config?.timeframe;
+  const label = !configured ? "Not configured" : data?.status === "active" ? "Active" : "Paused";
+  const tone = label === "Active" ? "text-mint" : label === "Paused" ? "text-amber" : "text-mute";
+  const dot = label === "Active" ? "bg-mint" : label === "Paused" ? "bg-amber" : "bg-mute";
+  const outOfCredits = data?.paused_reason === "credits_exhausted";
+
+  return (
+    <Panel>
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 place-items-center rounded-md border border-line bg-ink2 font-mono text-xs text-fog">
+          TA
+        </span>
+        <div>
+          <h2 className="font-display text-base font-semibold">Trading Agent</h2>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">forecasting</p>
+        </div>
+        <span className={`ml-auto inline-flex items-center gap-1.5 font-mono text-[11px] ${tone}`}>
+          <span className={`size-1.5 rounded-full ${dot}`} />
+          {label}
+        </span>
+      </div>
+
+      <p className="mt-3 text-sm text-fog">
+        Reads candles from your MT5 bridge and asks a forecasting model for a direction on one pair and timeframe.
+      </p>
+
+      {outOfCredits && (
+        <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber/40 bg-amber/10 px-2.5 py-1 font-mono text-[11px] text-amber">
+          Paused — out of credits
+        </p>
+      )}
+
+      <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-4 font-mono text-[11px]">
+        <div>
+          <dt className="text-mute">Pair</dt>
+          <dd className="mt-1 text-fog">{config?.pair ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-mute">Timeframe</dt>
+          <dd className="mt-1 text-fog">{config?.timeframe ?? "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-mute">Model</dt>
+          <dd className="mt-1 truncate text-fog">{config?.forecast_model ?? "kronos"}</dd>
+        </div>
+      </dl>
+
+      <Link
+        to="/app/agent-services/trading-agent"
+        className="mt-4 inline-block rounded-md border border-line px-3 py-2 text-sm text-white hover:bg-ink2"
+      >
+        Open
+      </Link>
+    </Panel>
   );
 }

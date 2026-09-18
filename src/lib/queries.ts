@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
+import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, tradingAgentActivate, tradingAgentGenerate, tradingAgentPause, tradingAgentSave, tradingAgentSignals, tradingAgentStatus, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode, type TradingAgentConfig } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -28,7 +28,7 @@ import type {
 // Removed from the connector *options* shown to users (same treatment as
 // mt5/xero/lovable below), while its catalog row and any existing
 // connections stay intact in the database in case this is revisited.
-const disabledConnectorIds = new Set(["mt5", "xero", "lovable", "hubspot"]);
+const disabledConnectorIds = new Set(["xero", "lovable", "hubspot"]);
 
 // meta-ads and whatsapp used to be faked in here because they weren't real
 // rows in connector_catalog -- saving a connection for either would fail
@@ -678,5 +678,40 @@ export function useSignalMonitorControls() {
     }),
     activate: useMutation({ mutationFn: () => signalMonitorActivate(), onSuccess: invalidate }),
     pause: useMutation({ mutationFn: () => signalMonitorPause(), onSuccess: invalidate }),
+  };
+}
+
+/* trading agent — pair/timeframe/model form, plus its own signal history. */
+
+export function useTradingAgent() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent", user?.id],
+    enabled: !!user,
+    queryFn: () => tradingAgentStatus(),
+  });
+}
+
+export function useTradingAgentSignals() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent-signals", user?.id],
+    enabled: !!user,
+    refetchInterval: 30_000,
+    queryFn: () => tradingAgentSignals(),
+  });
+}
+
+export function useTradingAgentControls() {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["trading-agent"] });
+    void qc.invalidateQueries({ queryKey: ["trading-agent-signals"] });
+  };
+  return {
+    save: useMutation({ mutationFn: (config: TradingAgentConfig) => tradingAgentSave(config), onSuccess: invalidate }),
+    activate: useMutation({ mutationFn: () => tradingAgentActivate(), onSuccess: invalidate }),
+    pause: useMutation({ mutationFn: () => tradingAgentPause(), onSuccess: invalidate }),
+    generate: useMutation({ mutationFn: (config: TradingAgentConfig) => tradingAgentGenerate(config), onSuccess: invalidate }),
   };
 }
