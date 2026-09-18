@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
 import { Panel } from "@/components/pink/primitives";
-import { useSignalMonitor } from "@/lib/queries";
+import { useSignalMonitor, useTradingAgent } from "@/lib/queries";
 
 export const Route = createFileRoute("/app/agent-services/")({
   head: () => ({
