@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
+import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, tradingAgentActivate, tradingAgentGenerate, tradingAgentPause, tradingAgentSave, tradingAgentSignals, tradingAgentStatus, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode, type TradingAgentConfig } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
