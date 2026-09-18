@@ -19,7 +19,7 @@ export const Route = createFileRoute("/app/agent-services/trading-agent")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: TradingAgentPage;
+  component: TradingAgentPage,
 });
 
 const field =

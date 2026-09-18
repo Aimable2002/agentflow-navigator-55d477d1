@@ -28,7 +28,7 @@ import type {
 // Removed from the connector *options* shown to users (same treatment as
 // mt5/xero/lovable below), while its catalog row and any existing
 // connections stay intact in the database in case this is revisited.
-const disabledConnectorIds = new Set(["mt5", "xero", "lovable", "hubspot"]);
+const disabledConnectorIds = new Set(["xero", "lovable", "hubspot"]);
 
 // meta-ads and whatsapp used to be faked in here because they weren't real
 // rows in connector_catalog -- saving a connection for either would fail
