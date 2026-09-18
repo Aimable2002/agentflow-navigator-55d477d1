@@ -25,3 +25,8 @@
       - `app/core/router.py` — unused `call_tier_fn` parameter
 - [ ] Run the SQL in the Supabase SQL editor (blocked: this project uses an external
       Supabase project, so migrations cannot be applied from here)
+
+## Agent services
+- [x] Telegram Signal Monitor card + detail page (config + signals)
+- [x] Trading Agent card + detail page (pair/timeframe/model, generate, signal history)
+- [x] MT5 re-enabled in the connectors list
