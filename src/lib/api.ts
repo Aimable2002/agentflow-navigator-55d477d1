@@ -248,3 +248,45 @@ export const signalMonitorPause = async () =>
 
 export const signalMonitorSignals = async () =>
   unwrap<{ signals: Signal[] }>((await signalMonitorSignalsFn()) as ProxyResult);
+
+/* ------------------------------------------------- trading agent */
+
+export type TradingAgentConfig = {
+  pair: string | null;
+  timeframe: string | null;
+  forecast_model: string;
+};
+
+export type TradingAgentStatus = {
+  status: "active" | "paused" | string;
+  config: TradingAgentConfig;
+  paused_reason?: string;
+};
+
+export type TradingSignal = {
+  id: string;
+  pair: string;
+  timeframe: string;
+  forecast_model?: string;
+  direction: "long" | "short" | "neutral" | string;
+  confidence: number | null;
+  created_at: string;
+};
+
+export const tradingAgentStatus = async () =>
+  unwrap<TradingAgentStatus>((await tradingAgentStatusFn()) as ProxyResult);
+
+export const tradingAgentSave = async (config: TradingAgentConfig) =>
+  unwrap<Record<string, unknown>>((await tradingAgentSaveFn({ data: config })) as ProxyResult);
+
+export const tradingAgentActivate = async () =>
+  unwrap<Record<string, unknown>>((await tradingAgentActivateFn()) as ProxyResult);
+
+export const tradingAgentPause = async () =>
+  unwrap<Record<string, unknown>>((await tradingAgentPauseFn()) as ProxyResult);
+
+export const tradingAgentGenerate = async (config: TradingAgentConfig) =>
+  unwrap<{ job_id: string; status: string }>((await tradingAgentGenerateFn({ data: config })) as ProxyResult);
+
+export const tradingAgentSignals = async () =>
+  unwrap<{ signals: TradingSignal[] }>((await tradingAgentSignalsFn()) as ProxyResult);

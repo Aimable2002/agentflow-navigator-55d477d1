@@ -185,3 +185,35 @@ export const signalMonitorPauseFn = createServerFn({ method: "POST" }).handler((
 export const signalMonitorSignalsFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend(`${SERVICE}/signals`, { method: "GET" }),
 );
+
+/* ------------------------------------------------- trading agent
+ * Form/dashboard driven service: MT5 candles + a forecasting model,
+ * no chat LLM involved. Same same-origin proxy pattern as above.
+ */
+
+const TRADING = "/v1/agent-services/trading-agent";
+
+export const tradingAgentStatusFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(TRADING, { method: "GET" }),
+);
+
+export const tradingAgentSaveFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { pair: string | null; timeframe: string | null; forecast_model: string }) => input)
+  .handler(({ data }) => callBackend(TRADING, { method: "PUT", body: JSON.stringify(data) }));
+
+export const tradingAgentActivateFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING}/activate`, { method: "POST" }),
+);
+
+export const tradingAgentPauseFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING}/pause`, { method: "POST" }),
+);
+
+/** POST generate — queues one signal run and returns { job_id, status }. */
+export const tradingAgentGenerateFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { pair: string | null; timeframe: string | null; forecast_model: string }) => input)
+  .handler(({ data }) => callBackend(`${TRADING}/generate`, { method: "POST", body: JSON.stringify(data) }));
+
+export const tradingAgentSignalsFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING}/signals`, { method: "GET" }),
+);

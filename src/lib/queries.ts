@@ -680,3 +680,38 @@ export function useSignalMonitorControls() {
     pause: useMutation({ mutationFn: () => signalMonitorPause(), onSuccess: invalidate }),
   };
 }
+
+/* trading agent — pair/timeframe/model form, plus its own signal history. */
+
+export function useTradingAgent() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent", user?.id],
+    enabled: !!user,
+    queryFn: () => tradingAgentStatus(),
+  });
+}
+
+export function useTradingAgentSignals() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent-signals", user?.id],
+    enabled: !!user,
+    refetchInterval: 30_000,
+    queryFn: () => tradingAgentSignals(),
+  });
+}
+
+export function useTradingAgentControls() {
+  const qc = useQueryClient();
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["trading-agent"] });
+    void qc.invalidateQueries({ queryKey: ["trading-agent-signals"] });
+  };
+  return {
+    save: useMutation({ mutationFn: (config: TradingAgentConfig) => tradingAgentSave(config), onSuccess: invalidate }),
+    activate: useMutation({ mutationFn: () => tradingAgentActivate(), onSuccess: invalidate }),
+    pause: useMutation({ mutationFn: () => tradingAgentPause(), onSuccess: invalidate }),
+    generate: useMutation({ mutationFn: (config: TradingAgentConfig) => tradingAgentGenerate(config), onSuccess: invalidate }),
+  };
+}
