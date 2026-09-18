@@ -34,6 +34,7 @@ import { Route as AppUsageRouteImport } from './routes/app.usage'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as AppAgentServicesIndexRouteImport } from './routes/app.agent-services.index'
 import { Route as AppAgentServicesTelegramSignalMonitorRouteImport } from './routes/app.agent-services.telegram-signal-monitor'
+import { Route as AppAgentServicesTradingAgentRouteImport } from './routes/app.agent-services.trading-agent'
 import { Route as AppConnectorsIndexRouteImport } from './routes/app.connectors.index'
 import { Route as AppConnectorsConnectorIdRouteImport } from './routes/app.connectors.$connectorId'
 import { Route as AppConversationsIndexRouteImport } from './routes/app.conversations.index'
@@ -170,6 +171,12 @@ const AppAgentServicesTelegramSignalMonitorRoute =
     path: '/agent-services/telegram-signal-monitor',
     getParentRoute: () => AppRoute,
   } as any)
+const AppAgentServicesTradingAgentRoute =
+  AppAgentServicesTradingAgentRouteImport.update({
+    id: '/agent-services/trading-agent',
+    path: '/agent-services/trading-agent',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConnectorsIndexRoute = AppConnectorsIndexRouteImport.update({
   id: '/connectors/',
   path: '/connectors/',
@@ -244,6 +251,7 @@ export interface FileRoutesByFullPath {
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
+  '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
@@ -279,6 +287,7 @@ export interface FileRoutesByTo {
   '/docs/$slug': typeof DocsSlugRoute
   '/app': typeof AppIndexRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
+  '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
@@ -316,6 +325,7 @@ export interface FileRoutesById {
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
+  '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
   '/app/conversations/$conversationId': typeof AppConversationsConversationIdRoute
   '/app/settings/account': typeof AppSettingsAccountRoute
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/app/'
     | '/app/agent-services/telegram-signal-monitor'
+    | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/app'
     | '/app/agent-services/telegram-signal-monitor'
+    | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
@@ -425,6 +437,7 @@ export interface FileRouteTypes {
     | '/docs/$slug'
     | '/app/'
     | '/app/agent-services/telegram-signal-monitor'
+    | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
     | '/app/conversations/$conversationId'
     | '/app/settings/account'
@@ -635,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentServicesTelegramSignalMonitorRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/agent-services/trading-agent': {
+      id: '/app/agent-services/trading-agent'
+      path: '/agent-services/trading-agent'
+      fullPath: '/app/agent-services/trading-agent'
+      preLoaderRoute: typeof AppAgentServicesTradingAgentRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/connectors/': {
       id: '/app/connectors/'
       path: '/connectors'
@@ -707,6 +727,7 @@ interface AppRouteChildren {
   AppUsageRoute: typeof AppUsageRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAgentServicesTelegramSignalMonitorRoute: typeof AppAgentServicesTelegramSignalMonitorRoute
+  AppAgentServicesTradingAgentRoute: typeof AppAgentServicesTradingAgentRoute
   AppConnectorsConnectorIdRoute: typeof AppConnectorsConnectorIdRoute
   AppConversationsConversationIdRoute: typeof AppConversationsConversationIdRoute
   AppSettingsAccountRoute: typeof AppSettingsAccountRoute
@@ -726,6 +747,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppAgentServicesTelegramSignalMonitorRoute:
     AppAgentServicesTelegramSignalMonitorRoute,
+  AppAgentServicesTradingAgentRoute: AppAgentServicesTradingAgentRoute,
   AppConnectorsConnectorIdRoute: AppConnectorsConnectorIdRoute,
   AppConversationsConversationIdRoute: AppConversationsConversationIdRoute,
   AppSettingsAccountRoute: AppSettingsAccountRoute,
