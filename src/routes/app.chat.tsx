@@ -365,7 +365,7 @@ function Chat() {
                               setSelectedIds(
                                 on
                                   ? selected.filter((id) => id !== c.id)
-                                  : [...selected, c.id],
+                                  : oneTradingTool([...selected, c.id], c.id),
                               )
                             }
                             aria-pressed={on}
@@ -392,7 +392,7 @@ function Chat() {
                     <div className="flex items-center gap-2 border-t border-line pt-3">
                       <button
                         type="button"
-                        onClick={() => setSelectedIds(connected.map((c) => c.id))}
+                        onClick={() => setSelectedIds(oneTradingTool(connected.map((c) => c.id), "ctrader"))}
                         className="font-mono text-[10px] uppercase tracking-[0.1em] text-fog hover:text-white"
                       >
                         Select all
