@@ -17,13 +17,13 @@
 import {
   cancelJobFn,
   getJobFn,
+  healthFn,
+  PINK_API_URL,
   signalMonitorActivateFn,
   signalMonitorPauseFn,
   signalMonitorSaveFn,
   signalMonitorSignalsFn,
   signalMonitorStatusFn,
-  healthFn,
-  PINK_API_URL,
   startChatFn,
   telegramChatsFn,
   telegramDisconnectFn,
@@ -31,6 +31,12 @@ import {
   telegramStatusFn,
   telegramTwoFaFn,
   telegramVerifyFn,
+  tradingAgentActivateFn,
+  tradingAgentGenerateFn,
+  tradingAgentPauseFn,
+  tradingAgentSaveFn,
+  tradingAgentSignalsFn,
+  tradingAgentStatusFn,
   whatsappDisconnectFn,
   whatsappSaveCredentialsFn,
   whatsappSendTestFn,
@@ -157,9 +163,9 @@ export async function apiHealth() {
 
 export type TelegramStatus = {
   connected: boolean;
-  phone?: string;
-  monitored_chats?: unknown[];
-  last_error?: string;
+  phone?: string | null;
+  monitored_chats?: string[] | null;
+  last_error?: string | null;
 };
 
 export type TelegramStep = { step: "code" | "password" | "ready" };
@@ -198,6 +204,7 @@ export const whatsappSendTest = async (message?: string) =>
   unwrap<{ result: string }>(
     (await whatsappSendTestFn({ data: { message: message ?? "This is a test alert." } })) as ProxyResult,
   );
+
 /* ------------------------------------------------- agent services */
 
 export type TelegramChat = {
@@ -208,9 +215,43 @@ export type TelegramChat = {
   unread_count?: number;
 };
 
+export type TelegramSignalType = "forex" | "binary_option";
+export type TelegramDirection = "buy" | "sell" | "call" | "put";
+export type TelegramParseStatus = "pending" | "parsed" | "rejected";
+
+export type TelegramSignal = {
+  id: string;
+  created_at: string;
+  source: "telegram";
+  channel: string | null;
+  raw_text: string;
+  signal_type: TelegramSignalType | null;
+  symbol: string | null;
+  direction: TelegramDirection | null;
+  entry: number | null;
+  take_profits: number[];
+  stop_loss: number | null;
+  expiry_minutes: number | null;
+  normalized_signal: {
+    is_signal?: boolean;
+    signal_type?: TelegramSignalType;
+    symbol?: string;
+    direction?: TelegramDirection;
+    entry?: number | null;
+    take_profits?: number[];
+    stop_loss?: number | null;
+    expiry_minutes?: number | null;
+    reasoning?: string;
+    parse_status?: TelegramParseStatus;
+  };
+  parse_status: TelegramParseStatus;
+  model_reasoning: string | null;
+  alerted?: boolean;
+  alert_error?: string | null;
+};
+
 export type SignalMonitorConfig = {
   monitored_chats: string[];
-  min_confidence: number;
   alert_chat: string;
 };
 
@@ -220,16 +261,7 @@ export type SignalMonitorStatus = {
   paused_reason?: string;
 };
 
-export type Signal = {
-  id: string;
-  channel: string;
-  raw_text: string;
-  confidence_score: number;
-  model_reasoning?: string;
-  alerted: boolean;
-  alert_error?: string | null;
-  created_at: string;
-};
+export type Signal = TelegramSignal;
 
 export const telegramChats = async () =>
   unwrap<{ chats: TelegramChat[] }>((await telegramChatsFn()) as ProxyResult);
@@ -248,3 +280,74 @@ export const signalMonitorPause = async () =>
 
 export const signalMonitorSignals = async () =>
   unwrap<{ signals: Signal[] }>((await signalMonitorSignalsFn()) as ProxyResult);
+
+export type TradingConnector = "mt5" | "ctrader";
+
+export type TradingAgentConfig = {
+  pair: string | null;
+  timeframe: string | null;
+  connector: TradingConnector;
+  candle_tool: string;
+  forecast_models: string[];
+};
+
+export type TradingSignalModelForecast = {
+  model: string;
+  direction: "long" | "short" | "neutral";
+  confidence: number;
+  entry: number | null;
+  take_profits: number[];
+  stop_loss: number | null;
+  raw: Record<string, unknown>;
+};
+
+export type TradingSignal = {
+  id: string;
+  created_at: string;
+  pair: string;
+  timeframe: string;
+  forecast_model: string;
+  direction: "long" | "short" | "neutral";
+  confidence: number;
+  raw_forecast: Record<string, unknown>;
+  signal: {
+    symbol: string;
+    signal_type: "forex";
+    direction: "long" | "short" | "neutral";
+    entry: number | null;
+    take_profits: number[];
+    stop_loss: number | null;
+    timeframe: string;
+    confidence: number;
+    consensus: number;
+  };
+  model_forecasts: TradingSignalModelForecast[];
+  outcome_status: "pending" | "won" | "lost" | "neutral" | "expired";
+  outcome_direction: string | null;
+  outcome_price: number | null;
+  outcome_at: string | null;
+};
+
+export type TradingAgentStatus = {
+  status: "active" | "paused" | string;
+  config: TradingAgentConfig;
+  paused_reason?: string;
+};
+
+export const tradingAgentStatus = async () =>
+  unwrap<TradingAgentStatus>((await tradingAgentStatusFn()) as ProxyResult);
+
+export const tradingAgentSave = async (config: TradingAgentConfig) =>
+  unwrap<Record<string, unknown>>((await tradingAgentSaveFn({ data: config })) as ProxyResult);
+
+export const tradingAgentActivate = async () =>
+  unwrap<Record<string, unknown>>((await tradingAgentActivateFn()) as ProxyResult);
+
+export const tradingAgentPause = async () =>
+  unwrap<Record<string, unknown>>((await tradingAgentPauseFn()) as ProxyResult);
+
+export const tradingAgentGenerate = async () =>
+  unwrap<{ job_id: string; status: string }>((await tradingAgentGenerateFn()) as ProxyResult);
+
+export const tradingAgentSignals = async () =>
+  unwrap<{ signals: TradingSignal[] }>((await tradingAgentSignalsFn()) as ProxyResult);

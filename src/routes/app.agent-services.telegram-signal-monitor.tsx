@@ -1,16 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { AlertTriangle, Check, Hash, Megaphone, User } from "lucide-react";
 import { Panel } from "@/components/pink/primitives";
 import { relativeTime } from "@/lib/format";
-import {
-  useSignalMonitor,
-  useSignalMonitorControls,
-  useSignalMonitorSignals,
-  useTelegramChats,
-  useTelegramStatus,
-} from "@/lib/queries";
+import { useSignalMonitor, useSignalMonitorControls, useSignalMonitorSignals, useTelegramChats, useTelegramStatus } from "@/lib/queries";
 
 export const Route = createFileRoute("/app/agent-services/telegram-signal-monitor")({
   head: () => ({
@@ -18,24 +12,22 @@ export const Route = createFileRoute("/app/agent-services/telegram-signal-monito
       { title: "Telegram Signal Monitor | PINK workspace" },
       {
         name: "description",
-        content: "Choose which Telegram chats are read, set the confidence threshold, and review scored signals.",
+        content: "Choose which Telegram chats are read and review normalized trading signals.",
       },
       { property: "og:title", content: "Telegram Signal Monitor" },
-      { property: "og:description", content: "A background worker that scores Telegram messages and alerts you." },
+      { property: "og:description", content: "A background worker that watches Telegram for trading signals." },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: SignalMonitor,
 });
 
-const field =
-  "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2.5 text-sm text-white outline-none focus:border-pink";
+const field = "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2.5 text-sm text-white outline-none focus:border-pink";
 
 function SignalMonitor() {
   const [tab, setTab] = useState<"config" | "signals">("config");
   const telegram = useTelegramStatus();
   const monitor = useSignalMonitor();
-
   const telegramConnected = telegram.data?.connected === true;
 
   return (
@@ -53,21 +45,20 @@ function SignalMonitor() {
           <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">monitoring</p>
         </div>
         <span className="ml-auto font-mono text-[11px] text-mute">
-          {monitor.data?.status === "active" ? "active" : "paused"}
+          {monitor.data?.status === "active" ? "active" : monitor.data?.status === "paused" ? "paused" : "paused"}
         </span>
       </div>
 
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-fog">
-        Messages from the chats you select are read and scored for how likely they are to be a real trading signal.
-        Anything at or above your threshold is sent to you on Telegram.
+        Messages from the chats you select are read for trading opportunities and normalized into structured signals.
       </p>
 
       {!telegram.isLoading && !telegramConnected ? (
         <Panel className="mt-6 max-w-2xl">
           <h2 className="font-display text-lg font-semibold">Telegram is not connected</h2>
           <p className="mt-2 text-sm text-fog">
-            This service reads messages through your own Telegram account. Connect it on the Telegram connector page
-            first, then come back here to choose chats.
+            This service reads messages through your own Telegram account. Connect it on the Telegram connector page first,
+            then come back here to choose chats.
           </p>
           <Link
             to="/app/connectors/$connectorId"
@@ -109,7 +100,6 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
   const { save, activate, pause } = useSignalMonitorControls();
 
   const [selected, setSelected] = useState<string[]>([]);
-  const [minConfidence, setMinConfidence] = useState(6);
   const [alertChat, setAlertChat] = useState("me");
   const [activateError, setActivateError] = useState<string | null>(null);
 
@@ -117,18 +107,18 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
     const config = monitor.data?.config;
     if (!config) return;
     setSelected(config.monitored_chats ?? []);
-    setMinConfidence(typeof config.min_confidence === "number" ? config.min_confidence : 6);
     setAlertChat(config.alert_chat || "me");
   }, [monitor.data]);
 
   const active = monitor.data?.status === "active";
+  const pauseReason = monitor.data?.paused_reason;
 
   const toggle = (id: string) =>
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
 
   const submit = () => {
     save.mutate(
-      { monitored_chats: selected, min_confidence: minConfidence, alert_chat: alertChat.trim() || "me" },
+      { monitored_chats: selected, alert_chat: alertChat.trim() || "me" },
       {
         onSuccess: () => toast.success("Monitoring settings saved."),
         onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save these settings."),
@@ -174,12 +164,7 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
               return (
                 <li key={id}>
                   <label className="flex cursor-pointer items-center gap-3 rounded-md border border-line px-3 py-2 hover:bg-ink2">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggle(id)}
-                      className="size-4 accent-pink"
-                    />
+                    <input type="checkbox" checked={checked} onChange={() => toggle(id)} className="size-4 accent-pink" />
                     <Icon className="size-4 text-mute" />
                     <span className="min-w-0 flex-1 truncate text-sm text-white">{chat.name}</span>
                     <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.1em] text-mute">
@@ -201,33 +186,12 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
 
         <Panel>
           <label className="block">
-            <span className="text-sm font-medium text-white">Minimum confidence to alert</span>
-            <span className="mt-1 block text-sm text-fog">
-              Only messages the AI scores at or above this will be sent to you.
-            </span>
-            <div className="mt-3 flex items-center gap-4">
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={1}
-                value={minConfidence}
-                onChange={(e) => setMinConfidence(Number(e.target.value))}
-                className="w-full accent-pink"
-              />
-              <span className="w-10 shrink-0 text-center font-mono text-sm text-white">{minConfidence}</span>
-            </div>
-          </label>
-        </Panel>
-
-        <Panel>
-          <label className="block">
-            <span className="text-sm font-medium text-white">Where alerts go</span>
+            <span className="text-sm font-medium text-white">Alert destination</span>
             <input value={alertChat} onChange={(e) => setAlertChat(e.target.value)} className={field} />
           </label>
           <p className="mt-2 text-sm text-fog">
-            &lsquo;me&rsquo; sends alerts to your own Telegram Saved Messages. You can also enter a specific
-            chat/username.
+            &lsquo;me&rsquo; sends alerts to your own Telegram Saved Messages. You can also enter a specific chat or
+            contact.
           </p>
         </Panel>
 
@@ -249,7 +213,7 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
             {active ? "Pause monitoring" : "Activate monitoring"}
           </button>
           <span className="font-mono text-[11px] text-mute">
-            {active ? "Currently running" : "Currently paused"}
+            {active ? "Currently active" : "Currently paused"}
           </span>
         </div>
 
@@ -258,44 +222,64 @@ function ConfigTab({ enabled }: { enabled: boolean }) {
             {activateError}
           </p>
         )}
-        {monitor.data?.paused_reason === "credits_exhausted" && (
+        {pauseReason && (
           <p className="rounded-md border border-amber/40 bg-amber/10 px-3 py-2 font-mono text-[11px] text-amber">
-            Paused — out of credits.
+            Paused — {pauseReason}
           </p>
         )}
       </div>
 
       <div className="space-y-4">
         <Panel>
-          <h2 className="font-display text-lg font-semibold">How this works</h2>
-          <ul className="mt-4 space-y-3 text-sm text-fog">
-            <li className="border-l-2 border-pink pl-3">
-              The AI never rewrites your messages — it only reads them and adds a confidence score.
-            </li>
-            <li className="border-l-2 border-line pl-3">Alerts arrive on Telegram, not in this app.</li>
-            <li className="border-l-2 border-line pl-3">
-              This costs real AI credits each time a message is scored — turn off chats you don&rsquo;t need monitored
-              to control usage.
-            </li>
-          </ul>
+          <h2 className="font-display text-lg font-semibold">Monitor status</h2>
+          <div className="mt-4 space-y-3 text-sm text-fog">
+            <div className="flex items-center justify-between gap-3 border-b border-line pb-2">
+              <span>Status</span>
+              <span className="font-mono text-[11px] uppercase text-white">{active ? "active" : "paused"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-b border-line pb-2">
+              <span>Alert target</span>
+              <span className="font-mono text-[11px] text-white">{alertChat || "me"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <span>Watched chats</span>
+              <span className="font-mono text-[11px] text-white">{selected.length}</span>
+            </div>
+          </div>
         </Panel>
       </div>
     </div>
   );
 }
 
-function scoreTone(score: number) {
-  if (score < 4) return "text-destructive";
-  if (score <= 6) return "text-amber";
-  return "text-mint";
+function formatDirection(value: string | null | undefined) {
+  const map: Record<string, string> = { buy: "Buy", sell: "Sell", call: "Call", put: "Put" };
+  return value ? map[value] ?? value : "—";
+}
+
+function formatSignalState(signal: { parse_status?: string; normalized_signal?: { parse_status?: string } }) {
+  const state = signal.parse_status ?? signal.normalized_signal?.parse_status ?? "pending";
+  if (state === "rejected") return "Rejected / unusable";
+  if (state === "pending") return "Pending parsing";
+  return "Parsed";
 }
 
 function SignalsTab() {
-  const monitor = useSignalMonitor();
   const { data, isLoading, error } = useSignalMonitorSignals();
   const [expanded, setExpanded] = useState<string | null>(null);
-  const threshold = monitor.data?.config?.min_confidence ?? 6;
   const signals = data?.signals ?? [];
+
+  const items = useMemo(
+    () =>
+      signals.map((signal) => ({
+        ...signal,
+        open: expanded === signal.id,
+        type: signal.signal_type ?? signal.normalized_signal?.signal_type ?? null,
+        direction: signal.direction ?? signal.normalized_signal?.direction ?? null,
+        status: signal.parse_status ?? signal.normalized_signal?.parse_status ?? "pending",
+      })),
+    [expanded, signals],
+  );
 
   return (
     <div className="mt-6">
@@ -309,75 +293,123 @@ function SignalsTab() {
       {!isLoading && signals.length === 0 && (
         <Panel>
           <p className="text-sm text-fog">
-            No signals yet — once you activate monitoring and a message comes in from a watched chat, it&rsquo;ll show
-            up here.
+            No signals yet — once you activate monitoring and a message comes in from a watched chat, it&rsquo;ll show up here.
           </p>
         </Panel>
       )}
 
-      {signals.length > 0 && (
-        <div className="overflow-x-auto rounded-lg border border-line">
-          <table className="w-full min-w-[720px] text-left">
-            <thead className="bg-ink2 font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
-              <tr>
-                <th className="px-4 py-3">Time</th>
-                <th className="px-4 py-3">Channel</th>
-                <th className="px-4 py-3">Message</th>
-                <th className="px-4 py-3">Score</th>
-                <th className="px-4 py-3">Alert</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {signals.map((s) => {
-                const open = expanded === s.id;
-                const failed = !s.alerted && !!s.alert_error;
-                return (
-                  <tr key={s.id} className="align-top">
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-[11px] text-mute">
-                      {relativeTime(s.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-fog">{s.channel}</td>
-                    <td className="max-w-md px-4 py-3 text-sm text-white">
-                      <button
-                        type="button"
-                        onClick={() => setExpanded(open ? null : s.id)}
-                        className={open ? "text-left" : "line-clamp-2 text-left"}
+      {items.length > 0 && (
+        <div className="space-y-4">
+          {items.map((signal) => {
+            const open = signal.open;
+            const failed = !signal.alerted && !!signal.alert_error;
+            const parsed = signal.status === "parsed";
+            const rejected = signal.status === "rejected";
+            const pending = signal.status === "pending";
+
+            return (
+              <Panel key={signal.id} className="overflow-hidden">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+                        {relativeTime(signal.created_at)}
+                      </span>
+                      <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+                        {signal.channel ?? "unknown"}
+                      </span>
+                      <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
+                        {formatSignalState(signal)}
+                      </span>
+                    </div>
+
+                    {rejected ? (
+                      <p className="mt-3 text-sm text-destructive">This Telegram message was rejected as unusable.</p>
+                    ) : pending ? (
+                      <p className="mt-3 text-sm text-amber">Processing this message into a structured trade signal…</p>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2 text-sm text-white">
+                        {signal.type && <span className="rounded border border-line px-2 py-1">{signal.type}</span>}
+                        {signal.symbol && <span className="rounded border border-line px-2 py-1">{signal.symbol}</span>}
+                        {signal.direction && <span className="rounded border border-line px-2 py-1">{formatDirection(signal.direction)}</span>}
+                        {signal.entry !== null && signal.entry !== undefined && (
+                          <span className="rounded border border-line px-2 py-1">Entry {signal.entry}</span>
+                        )}
+                        {signal.expiry_minutes && (
+                          <span className="rounded border border-line px-2 py-1">Expiry {signal.expiry_minutes}m</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {signal.alerted ? (
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-mint">
+                        <Check className="size-3.5" /> sent
+                      </span>
+                    ) : failed ? (
+                      <span
+                        title={signal.alert_error ?? "Delivery failed"}
+                        className="inline-flex items-center gap-1.5 font-mono text-[11px] text-destructive"
                       >
-                        {s.raw_text}
-                      </button>
-                      {open && s.model_reasoning && (
-                        <p className="mt-2 border-l-2 border-line pl-3 text-sm text-fog">{s.model_reasoning}</p>
-                      )}
-                    </td>
-                    <td className={`px-4 py-3 font-mono text-sm ${scoreTone(s.confidence_score)}`}>
-                      {s.confidence_score}
-                    </td>
-                    <td className="px-4 py-3">
-                      {s.alerted ? (
-                        <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-mint">
-                          <Check className="size-3.5" /> sent
-                        </span>
-                      ) : failed ? (
-                        <span
-                          title={s.alert_error ?? "Delivery failed"}
-                          className="inline-flex items-center gap-1.5 font-mono text-[11px] text-destructive"
-                        >
-                          <AlertTriangle className="size-3.5" /> failed
-                        </span>
-                      ) : (
-                        <span
-                          title={`Below your threshold of ${threshold}`}
-                          className="font-mono text-[11px] text-mute"
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <AlertTriangle className="size-3.5" /> failed
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[11px] text-mute">pending alert</span>
+                    )}
+                  </div>
+                </div>
+
+                {!rejected && !pending && parsed && (
+                  <div className="mt-4 grid gap-3 rounded-md border border-line bg-ink2 p-3 text-sm text-fog md:grid-cols-2">
+                    {signal.symbol && <div><span className="text-mute">Symbol</span><div className="mt-1 text-white">{signal.symbol}</div></div>}
+                    {signal.direction && <div><span className="text-mute">Direction</span><div className="mt-1 text-white">{formatDirection(signal.direction)}</div></div>}
+                    {signal.entry !== null && signal.entry !== undefined && (
+                      <div><span className="text-mute">Entry</span><div className="mt-1 text-white">{signal.entry}</div></div>
+                    )}
+                    {signal.stop_loss !== null && signal.stop_loss !== undefined && (
+                      <div><span className="text-mute">Stop loss</span><div className="mt-1 text-white">{signal.stop_loss}</div></div>
+                    )}
+                    {signal.take_profits && signal.take_profits.length > 0 && (
+                      <div className="md:col-span-2"><span className="text-mute">Take profits</span><div className="mt-1 flex flex-wrap gap-2 text-white">{signal.take_profits.map((tp) => <span key={`${signal.id}-${tp}`} className="rounded border border-line px-2 py-1">{tp}</span>)}</div></div>
+                    )}
+                    {signal.expiry_minutes && (
+                      <div><span className="text-mute">Expiry</span><div className="mt-1 text-white">{signal.expiry_minutes} minutes</div></div>
+                    )}
+                  </div>
+                )}
+
+                {open && (
+                  <div className="mt-4 rounded-md border border-line bg-ink2 p-3">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">Original message</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-fog">{signal.raw_text}</p>
+                    {signal.model_reasoning && (
+                      <>
+                        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-mute">Reasoning</p>
+                        <p className="mt-2 text-sm text-fog">{signal.model_reasoning}</p>
+                      </>
+                    )}
+                    {signal.normalized_signal && Object.keys(signal.normalized_signal).length > 0 && (
+                      <>
+                        <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-mute">Normalized payload</p>
+                        <pre className="mt-2 overflow-x-auto rounded-md bg-ink p-3 text-xs text-mute">
+                          {JSON.stringify(signal.normalized_signal, null, 2)}
+                        </pre>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setExpanded(open ? null : signal.id)}
+                  className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-pink hover:text-white"
+                >
+                  {open ? "Hide details" : "Show details"}
+                </button>
+              </Panel>
+            );
+          })}
         </div>
       )}
     </div>

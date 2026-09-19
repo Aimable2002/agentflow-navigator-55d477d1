@@ -5,7 +5,35 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { cancelJob, getJob, signalMonitorActivate, signalMonitorPause, signalMonitorSave, signalMonitorSignals, signalMonitorStatus, startChat, telegramChats, telegramDisconnect, telegramStart, telegramStatus, telegramTwoFa, telegramVerify, whatsappDisconnect, whatsappSaveCredentials, whatsappSendTest, whatsappStatus, type AgentStep, type ChatMode } from "@/lib/api";
+import {
+  cancelJob,
+  getJob,
+  signalMonitorActivate,
+  signalMonitorPause,
+  signalMonitorSave,
+  signalMonitorSignals,
+  signalMonitorStatus,
+  startChat,
+  telegramChats,
+  telegramDisconnect,
+  telegramStart,
+  telegramStatus,
+  telegramTwoFa,
+  telegramVerify,
+  tradingAgentActivate,
+  tradingAgentGenerate,
+  tradingAgentPause,
+  tradingAgentSave,
+  tradingAgentSignals,
+  tradingAgentStatus,
+  whatsappDisconnect,
+  whatsappSaveCredentials,
+  whatsappSendTest,
+  whatsappStatus,
+  type AgentStep,
+  type ChatMode,
+  type TradingAgentConfig,
+} from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import type {
   ApiKey,
@@ -672,11 +700,46 @@ export function useSignalMonitorControls() {
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["signal-monitor"] });
   return {
     save: useMutation({
-      mutationFn: (config: { monitored_chats: string[]; min_confidence: number; alert_chat: string }) =>
-        signalMonitorSave(config),
+      mutationFn: (config: { monitored_chats: string[]; alert_chat: string }) => signalMonitorSave(config),
       onSuccess: invalidate,
     }),
     activate: useMutation({ mutationFn: () => signalMonitorActivate(), onSuccess: invalidate }),
     pause: useMutation({ mutationFn: () => signalMonitorPause(), onSuccess: invalidate }),
+  };
+}
+
+export function useTradingAgent() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent", user?.id],
+    enabled: !!user,
+    queryFn: () => tradingAgentStatus(),
+  });
+}
+
+export function useTradingAgentSignals() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trading-agent-signals", user?.id],
+    enabled: !!user,
+    refetchInterval: 30_000,
+    queryFn: () => tradingAgentSignals(),
+  });
+}
+
+export function useTradingAgentControls() {
+  const qc = useQueryClient();
+  const invalidate = () => void qc.invalidateQueries({ queryKey: ["trading-agent"] });
+  return {
+    save: useMutation({
+      mutationFn: (config: TradingAgentConfig) => tradingAgentSave(config),
+      onSuccess: invalidate,
+    }),
+    activate: useMutation({ mutationFn: () => tradingAgentActivate(), onSuccess: invalidate }),
+    pause: useMutation({ mutationFn: () => tradingAgentPause(), onSuccess: invalidate }),
+    generate: useMutation({
+      mutationFn: () => tradingAgentGenerate(),
+      onSuccess: () => void qc.invalidateQueries({ queryKey: ["trading-agent-signals"] }),
+    }),
   };
 }

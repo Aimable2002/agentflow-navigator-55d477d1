@@ -47,8 +47,6 @@ async function callBackend(path: string, init: RequestInit): Promise<ProxyResult
     } catch {
       /* keep the raw body */
     }
-    // A 5xx carries no useful detail for the person reading it — the backend
-    // itself failed. Say that plainly instead of surfacing "Internal Server Error".
     if (response.status >= 500) {
       message = "This isn't available from the agent backend yet — it returned a server error, so there is nothing to show.";
     }
@@ -88,11 +86,7 @@ export const healthFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/healthz", { method: "GET" }),
 );
 
-/* ------------------------------------------------------------- telegram
- * Telegram has no generic form to fill in -- these proxy the real
- * interactive OTP login flow (phone -> code -> optional 2FA password),
- * replacing what used to be purely local, fake UI state.
- */
+/* ------------------------------------------------------------- telegram */
 
 export const telegramStatusFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/v1/telegram/status", { method: "GET" }),
@@ -120,12 +114,7 @@ export const telegramDisconnectFn = createServerFn({ method: "POST" }).handler((
   callBackend("/v1/telegram", { method: "DELETE" }),
 );
 
-/* ------------------------------------------------------------- whatsapp
- * WhatsApp's real credential shape is three values plus a recipient
- * number, not a single bearer token -- these route through the backend
- * (service role) rather than a direct browser upsert, so the access
- * token is never round-tripped through client-side Supabase calls.
- */
+/* ------------------------------------------------------------- whatsapp */
 
 export const whatsappStatusFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/v1/whatsapp/status", { method: "GET" }),
@@ -147,14 +136,11 @@ export const whatsappSendTestFn = createServerFn({ method: "POST" })
   .handler(({ data }) =>
     callBackend("/v1/whatsapp/test", { method: "POST", body: JSON.stringify({ message: data.message ?? "This is a test alert." }) }),
   );
-/* ------------------------------------------------- agent services
- * Persistent background workers (as opposed to connectors, which are
- * tools the chat agent reaches for). Same proxy pattern: the browser
- * cannot reach the backend directly, so these run same-origin and
- * forward the caller's bearer token.
- */
 
-const SERVICE = "/v1/agent-services/telegram-signal-monitor";
+/* ------------------------------------------------- agent services */
+
+const TELEGRAM_SERVICE = "/v1/agent-services/telegram-signal-monitor";
+const TRADING_SERVICE = "/v1/agent-services/trading-agent";
 
 /** GET /v1/telegram/chats — chats the connected Telegram account can see. */
 export const telegramChatsFn = createServerFn({ method: "POST" }).handler(() =>
@@ -163,25 +149,55 @@ export const telegramChatsFn = createServerFn({ method: "POST" }).handler(() =>
 
 /** GET the monitor's status + saved config. */
 export const signalMonitorStatusFn = createServerFn({ method: "POST" }).handler(() =>
-  callBackend(SERVICE, { method: "GET" }),
+  callBackend(TELEGRAM_SERVICE, { method: "GET" }),
 );
 
 /** PUT the monitor's config. */
 export const signalMonitorSaveFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { monitored_chats: string[]; min_confidence: number; alert_chat: string }) => input)
-  .handler(({ data }) => callBackend(SERVICE, { method: "PUT", body: JSON.stringify(data) }));
+  .inputValidator((input: { monitored_chats: string[]; alert_chat: string }) => input)
+  .handler(({ data }) => callBackend(TELEGRAM_SERVICE, { method: "PUT", body: JSON.stringify(data) }));
 
 /** POST activate — 400 when no chats are selected. */
 export const signalMonitorActivateFn = createServerFn({ method: "POST" }).handler(() =>
-  callBackend(`${SERVICE}/activate`, { method: "POST" }),
+  callBackend(`${TELEGRAM_SERVICE}/activate`, { method: "POST" }),
 );
 
 /** POST pause. */
 export const signalMonitorPauseFn = createServerFn({ method: "POST" }).handler(() =>
-  callBackend(`${SERVICE}/pause`, { method: "POST" }),
+  callBackend(`${TELEGRAM_SERVICE}/pause`, { method: "POST" }),
 );
 
 /** GET the recent scored signals. */
 export const signalMonitorSignalsFn = createServerFn({ method: "POST" }).handler(() =>
-  callBackend(`${SERVICE}/signals`, { method: "GET" }),
+  callBackend(`${TELEGRAM_SERVICE}/signals`, { method: "GET" }),
+);
+
+/** GET trading agent status + saved config. */
+export const tradingAgentStatusFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(TRADING_SERVICE, { method: "GET" }),
+);
+
+/** PUT the trading agent config. */
+export const tradingAgentSaveFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { pair: string | null; timeframe: string | null; connector: "mt5" | "ctrader"; candle_tool: string; forecast_models: string[] }) => input)
+  .handler(({ data }) => callBackend(TRADING_SERVICE, { method: "PUT", body: JSON.stringify(data) }));
+
+/** POST activate. */
+export const tradingAgentActivateFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING_SERVICE}/activate`, { method: "POST" }),
+);
+
+/** POST pause. */
+export const tradingAgentPauseFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING_SERVICE}/pause`, { method: "POST" }),
+);
+
+/** POST queue a new market signal. */
+export const tradingAgentGenerateFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING_SERVICE}/generate`, { method: "POST" }),
+);
+
+/** GET recent trading signals. */
+export const tradingAgentSignalsFn = createServerFn({ method: "POST" }).handler(() =>
+  callBackend(`${TRADING_SERVICE}/signals`, { method: "GET" }),
 );
