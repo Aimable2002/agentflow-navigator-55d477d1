@@ -30,7 +30,34 @@ export const Route = createFileRoute("/app/connectors/$connectorId")({
   component: ConnectorDetail,
 });
 
-const transports: McpTransport[] = ["stdio", "sse", "http"];
+// Local (stdio) servers can't be reached from the hosted agent, so that
+// transport is not offered at all — every connector must be reachable over
+// the network.
+const transports: McpTransport[] = ["sse", "http"];
+
+/** A URL only reachable from the user's own machine/LAN, not from the agent. */
+function localAddressError(raw: string): string | null {
+  let host = "";
+  try {
+    host = new URL(raw).hostname.toLowerCase();
+  } catch {
+    return "Enter a full URL, starting with https://";
+  }
+  const isLocal =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "host.docker.internal" ||
+    host.endsWith(".local") ||
+    host.endsWith(".localhost") ||
+    host === "::1" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (!isLocal) return null;
+  return "That address only exists on your own machine, so the agent can't reach it. Host the MT5 server somewhere public or expose it with an ngrok tunnel, then paste that URL here.";
+}
 
 function ConnectorDetail() {
   const { connectorId } = Route.useParams();
@@ -51,7 +78,8 @@ function ConnectorDetail() {
   useEffect(() => {
     if (!connector) return;
     const c = connector.connection;
-    setTransport(c?.transport ?? connector.default_transport);
+    const stored = c?.transport ?? connector.default_transport;
+    setTransport(stored === "stdio" ? "http" : stored);
     setServerUrl(c?.server_url ?? connector.default_server_url ?? "");
     setAuthHeader(c?.auth_header_name ?? "Authorization");
     setCommand(c?.command ?? "");
