@@ -30,7 +30,34 @@ export const Route = createFileRoute("/app/connectors/$connectorId")({
   component: ConnectorDetail,
 });
 
-const transports: McpTransport[] = ["stdio", "sse", "http"];
+// Local (stdio) servers can't be reached from the hosted agent, so that
+// transport is not offered at all — every connector must be reachable over
+// the network.
+const transports: McpTransport[] = ["sse", "http"];
+
+/** A URL only reachable from the user's own machine/LAN, not from the agent. */
+function localAddressError(raw: string): string | null {
+  let host = "";
+  try {
+    host = new URL(raw).hostname.toLowerCase();
+  } catch {
+    return "Enter a full URL, starting with https://";
+  }
+  const isLocal =
+    host === "localhost" ||
+    host === "0.0.0.0" ||
+    host === "host.docker.internal" ||
+    host.endsWith(".local") ||
+    host.endsWith(".localhost") ||
+    host === "::1" ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^169\.254\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+  if (!isLocal) return null;
+  return "That address only exists on your own machine, so the agent can't reach it. Host the MT5 server somewhere public or expose it with an ngrok tunnel, then paste that URL here.";
+}
 
 function ConnectorDetail() {
   const { connectorId } = Route.useParams();
@@ -43,19 +70,16 @@ function ConnectorDetail() {
   const [serverUrl, setServerUrl] = useState("");
   const [authHeader, setAuthHeader] = useState("Authorization");
   const [authToken, setAuthToken] = useState("");
-  const [command, setCommand] = useState("");
-  const [args, setArgs] = useState("");
   const [accountLabel, setAccountLabel] = useState("");
   const [scopes, setScopes] = useState<ConnectorScope[]>([]);
 
   useEffect(() => {
     if (!connector) return;
     const c = connector.connection;
-    setTransport(c?.transport ?? connector.default_transport);
+    const stored = c?.transport ?? connector.default_transport;
+    setTransport(stored === "stdio" ? "http" : stored);
     setServerUrl(c?.server_url ?? connector.default_server_url ?? "");
     setAuthHeader(c?.auth_header_name ?? "Authorization");
-    setCommand(c?.command ?? "");
-    setArgs((c?.args ?? []).join(" "));
     setAccountLabel(c?.account_label ?? "");
     setScopes(connector.scopes);
   }, [connector]);
@@ -86,23 +110,24 @@ function ConnectorDetail() {
   const grantedCount = scopes.filter((s) => s.granted).length;
 
   const submit = () => {
-    if (transport !== "stdio" && !serverUrl.trim()) {
-      toast.error("A server URL is required for SSE and HTTP transports.");
+    if (!serverUrl.trim()) {
+      toast.error("A server URL is required — the agent connects over the network.");
       return;
     }
-    if (transport === "stdio" && !command.trim()) {
-      toast.error("A command is required for the stdio transport.");
+    const localError = localAddressError(serverUrl.trim());
+    if (localError) {
+      toast.error(localError);
       return;
     }
     save.mutate(
       {
         connector_id: connector.id,
         transport,
-        server_url: transport === "stdio" ? null : serverUrl.trim(),
+        server_url: serverUrl.trim(),
         auth_header_name: authHeader.trim() || "Authorization",
         auth_token: authToken.trim() || null,
-        command: transport === "stdio" ? command.trim() : null,
-        args: transport === "stdio" ? args.trim().split(/\s+/).filter(Boolean) : [],
+        command: null,
+        args: [],
         account_label: accountLabel.trim() || null,
         scopes,
         status: "connected",
@@ -184,38 +209,23 @@ function ConnectorDetail() {
                 />
               </label>
 
-              {transport === "stdio" ? (
-                <>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Command</span>
-                    <input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="npx" className={field} />
-                  </label>
-                  <label className="block text-sm sm:col-span-2">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Arguments</span>
-                    <input
-                      value={args}
-                      onChange={(e) => setArgs(e.target.value)}
-                      placeholder="-y @modelcontextprotocol/server-github"
-                      className={field}
-                    />
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Server URL</span>
-                    <input
-                      value={serverUrl}
-                      onChange={(e) => setServerUrl(e.target.value)}
-                      placeholder="https://mcp.example.com/sse"
-                      className={field}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Auth header</span>
-                    <input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} className={field} />
-                  </label>
-                </>
+              <label className="block text-sm">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Server URL</span>
+                <input
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://mcp.example.com/sse"
+                  className={field}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Auth header</span>
+                <input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} className={field} />
+              </label>
+              {serverUrl.trim() && localAddressError(serverUrl.trim()) && (
+                <p className="rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-xs text-amber sm:col-span-2">
+                  {localAddressError(serverUrl.trim())}
+                </p>
               )}
 
               <label className="block text-sm sm:col-span-2">
