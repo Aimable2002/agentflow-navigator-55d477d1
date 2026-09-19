@@ -53,10 +53,9 @@ import type {
   UsageEvent,
 } from "@/lib/types";
 
-// Removed from the connector *options* shown to users (same treatment as
-// mt5/xero/lovable below), while its catalog row and any existing
-// connections stay intact in the database in case this is revisited.
-const disabledConnectorIds = new Set(["mt5", "xero", "lovable", "hubspot"]);
+// Removed from the connector *options* shown to users. MT5 is intentionally
+// kept visible because the trading agent depends on a real MT5 connection.
+const disabledConnectorIds = new Set(["xero", "lovable", "hubspot"]);
 
 // meta-ads and whatsapp used to be faked in here because they weren't real
 // rows in connector_catalog -- saving a connection for either would fail
