@@ -21,13 +21,19 @@ export const Route = createFileRoute("/app/agent-services/trading-agent")({
   component: TradingAgentPage,
 });
 
-const defaultConfig = {
+const defaultConfig: {
+  pair: string | null;
+  timeframe: string | null;
+  connector: "mt5" | "ctrader";
+  candle_tool: string;
+  forecast_models: string[];
+} = {
   pair: null,
   timeframe: null,
-  connector: "mt5",
+  connector: "ctrader",
   candle_tool: "get_candles",
   forecast_models: ["chronos2", "timesfm2_5", "moirai_moe"],
-} as const;
+};
 
 const field = "mt-1 w-full rounded-md border border-line bg-ink px-3 py-2.5 text-sm text-white outline-none focus:border-pink";
 
