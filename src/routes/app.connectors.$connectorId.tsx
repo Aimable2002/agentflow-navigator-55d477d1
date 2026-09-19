@@ -114,23 +114,24 @@ function ConnectorDetail() {
   const grantedCount = scopes.filter((s) => s.granted).length;
 
   const submit = () => {
-    if (transport !== "stdio" && !serverUrl.trim()) {
-      toast.error("A server URL is required for SSE and HTTP transports.");
+    if (!serverUrl.trim()) {
+      toast.error("A server URL is required — the agent connects over the network.");
       return;
     }
-    if (transport === "stdio" && !command.trim()) {
-      toast.error("A command is required for the stdio transport.");
+    const localError = localAddressError(serverUrl.trim());
+    if (localError) {
+      toast.error(localError);
       return;
     }
     save.mutate(
       {
         connector_id: connector.id,
         transport,
-        server_url: transport === "stdio" ? null : serverUrl.trim(),
+        server_url: serverUrl.trim(),
         auth_header_name: authHeader.trim() || "Authorization",
         auth_token: authToken.trim() || null,
-        command: transport === "stdio" ? command.trim() : null,
-        args: transport === "stdio" ? args.trim().split(/\s+/).filter(Boolean) : [],
+        command: null,
+        args: [],
         account_label: accountLabel.trim() || null,
         scopes,
         status: "connected",
