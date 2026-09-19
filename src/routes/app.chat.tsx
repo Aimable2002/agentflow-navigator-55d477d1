@@ -123,6 +123,15 @@ function Bubble({ m, taskMeta }: { m: Message; taskMeta: TaskMeta }) {
   );
 }
 
+// MT5 and cTrader are two routes to the same trading data, so only one can be
+// in scope at a time. cTrader is the default choice.
+const tradingIds = ["ctrader", "mt5"];
+
+function oneTradingTool(ids: string[], prefer: string): string[] {
+  const chosen = ids.includes(prefer) ? prefer : tradingIds.find((id) => ids.includes(id));
+  return ids.filter((id) => !tradingIds.includes(id) || id === chosen);
+}
+
 function Chat() {
   const { conversation: conversationId } = Route.useSearch();
   const navigate = useNavigate();
@@ -142,8 +151,10 @@ function Chat() {
   const messages = data?.messages ?? [];
   const connected = connectors.filter((c) => c.connected);
   const connectedIds = connected.map((c) => c.id);
-  const selected: string[] =
-    selectedIds === null ? connectedIds : selectedIds.filter((id) => connectedIds.includes(id));
+  const selected: string[] = oneTradingTool(
+    selectedIds === null ? connectedIds : selectedIds.filter((id) => connectedIds.includes(id)),
+    "ctrader",
+  );
   const mode: ChatMode = modeOverride ?? (selected.length > 0 ? "agent" : "chat");
   const running = tasks.filter((t) => t.status === "running" || t.status === "queued");
 
