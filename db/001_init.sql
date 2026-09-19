@@ -70,7 +70,7 @@ insert into public.connector_catalog
 values
   ('mt5', 'MT5', 'Trading', 'Write, backtest and iterate Expert Advisors',
    'Connect a MetaTrader 5 terminal so the agent can author MQL5 Expert Advisors, compile them, run historical backtests across symbols and timeframes, and iterate on parameters until the strategy holds up.',
-  null, null,
+  'http', null,
    '[{"key":"market.read","label":"Read market history","detail":"Symbols, timeframes, tick data","granted":true},
      {"key":"strategy.run","label":"Compile & run strategies","detail":"Strategy tester, optimisation runs","granted":true},
      {"key":"account.read","label":"Read account state","detail":"Balance, equity, open positions","granted":true},

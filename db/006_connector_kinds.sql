@@ -17,16 +17,21 @@ alter table public.connector_catalog
 update public.connector_catalog
 set kind = 'native',
     default_transport = null
-where id in ('mt5', 'ctrader', 'telegram', 'whatsapp', 'lovable');
+where id in ('ctrader', 'telegram', 'whatsapp', 'lovable');
+
+update public.connector_catalog
+set kind = 'mcp',
+    default_transport = 'http'
+where id = 'mt5';
 
 update public.connector_catalog
 set kind = 'mcp'
 where id in ('github', 'linear', 'hubspot', 'xero', 'zapier', 'meta-ads');
 
 update public.connector_catalog
-set description = 'Connect a MetaTrader 5 account through the native trading integration managed by the agent backend. '
-      || 'MT5 is not an MCP server and does not use a server URL or MCP transport.',
-    default_transport = null
+set description = 'Connect a MetaTrader 5 MCP server that can reach your terminal. '
+      || 'The server URL must be reachable by the agent; whether you host it publicly or use a tunnel such as ngrok is up to you.',
+    default_transport = 'http'
 where id = 'mt5';
 
 update public.connector_catalog

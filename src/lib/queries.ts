@@ -125,7 +125,10 @@ export function useConnectors() {
     const rows = catalog.data ?? [];
     const byId = new Map((connections.data ?? []).map((c) => [c.connector_id, c]));
     return rows.map((c) => {
-      const connection = c.kind === "mcp" ? byId.get(c.id) ?? null : null;
+      // Treat missing/null kind values from databases that predate migration
+      // 006 as MCP so existing GitHub and other saved connections continue to
+      // appear while the catalogue migration is rolled out.
+      const connection = c.kind !== "native" ? byId.get(c.id) ?? null : null;
       const nativeConnected =
         (c.id === "telegram" && telegram.data?.connected === true) ||
         (c.id === "whatsapp" && whatsapp.data?.connected === true);
