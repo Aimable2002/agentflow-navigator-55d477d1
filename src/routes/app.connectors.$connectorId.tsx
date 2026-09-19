@@ -213,38 +213,23 @@ function ConnectorDetail() {
                 />
               </label>
 
-              {transport === "stdio" ? (
-                <>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Command</span>
-                    <input value={command} onChange={(e) => setCommand(e.target.value)} placeholder="npx" className={field} />
-                  </label>
-                  <label className="block text-sm sm:col-span-2">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Arguments</span>
-                    <input
-                      value={args}
-                      onChange={(e) => setArgs(e.target.value)}
-                      placeholder="-y @modelcontextprotocol/server-github"
-                      className={field}
-                    />
-                  </label>
-                </>
-              ) : (
-                <>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Server URL</span>
-                    <input
-                      value={serverUrl}
-                      onChange={(e) => setServerUrl(e.target.value)}
-                      placeholder="https://mcp.example.com/sse"
-                      className={field}
-                    />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Auth header</span>
-                    <input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} className={field} />
-                  </label>
-                </>
+              <label className="block text-sm">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Server URL</span>
+                <input
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder="https://mcp.example.com/sse"
+                  className={field}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Auth header</span>
+                <input value={authHeader} onChange={(e) => setAuthHeader(e.target.value)} className={field} />
+              </label>
+              {serverUrl.trim() && localAddressError(serverUrl.trim()) && (
+                <p className="rounded-md border border-amber/40 bg-amber/10 px-3 py-2 text-xs text-amber sm:col-span-2">
+                  {localAddressError(serverUrl.trim())}
+                </p>
               )}
 
               <label className="block text-sm sm:col-span-2">
