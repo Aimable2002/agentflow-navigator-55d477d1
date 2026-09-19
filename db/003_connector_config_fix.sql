@@ -52,7 +52,7 @@ values
      || 'Use a System User Access Token generated in Meta Business Manager (Business Settings → Users → System Users), '
      || 'not your personal login token — it does not expire on its own the way a personal user token does. '
      || 'Grant it: ads_mcp_management, ads_read, ads_management, business_management, pages_show_list, instagram_basic.',
-   'http', 'https://mcp.facebook.com/ads',
+  'http', 'https://mcp.facebook.com/ads',
    '[{"key":"ads.read","label":"Read campaign data","detail":"Campaigns, ad sets, ads and delivery","granted":true},
      {"key":"insights.read","label":"Read performance insights","detail":"Spend, reach, clicks and conversions","granted":true},
      {"key":"ads.write","label":"Manage ads","detail":"Create or update campaigns and ads","granted":false}]'::jsonb,
@@ -79,7 +79,7 @@ values
   ('whatsapp', 'WhatsApp', 'Messaging', 'Receive task and signal alerts on WhatsApp',
    'Connect a WhatsApp Business number for send-only alerts when tasks finish, fail, or a monitored signal clears its threshold. '
      || 'Read access to your existing chats, groups or communities is not supported — the official WhatsApp Business API has no way to do that.',
-   'http', null,
+  'http', null,
    '[{"key":"messages.send","label":"Send alerts","detail":"Deliver task and signal notifications","granted":true}]'::jsonb,
    '["Send task completion alerts","Send task failure alerts","Send threshold-clearing signal alerts"]'::jsonb,
    80)

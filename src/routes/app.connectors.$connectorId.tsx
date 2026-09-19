@@ -106,6 +106,10 @@ function ConnectorDetail() {
     return <WhatsAppOnboarding connector={connector} />;
   }
 
+  if (connector.kind === "native") {
+    return <NativeConnectorOnboarding connector={connector} />;
+  }
+
   const related = tasks.filter((t) => t.connector_id === connector.id);
   const grantedCount = scopes.filter((s) => s.granted).length;
 
@@ -328,7 +332,8 @@ function ConnectorDetail() {
             <h2 className="font-display text-lg font-semibold">Status</h2>
             <dl className="mt-4 space-y-3 font-mono text-xs">
               {[
-                ["Transport", connector.transport],
+                ["Type", "MCP"],
+                ["Transport", connector.transport ?? "—"],
                 ["Server", connector.connection?.server_url ?? connector.default_server_url ?? "—"],
                 ["Account", connector.connection?.account_label ?? "—"],
                 ["Tools exposed", connector.connection?.tool_count?.toString() ?? "—"],
@@ -390,6 +395,60 @@ function ConnectorDetail() {
 type SpecialConnectorProps = {
   connector: NonNullable<ReturnType<typeof useConnector>["data"]>;
 };
+
+function NativeConnectorOnboarding({ connector }: SpecialConnectorProps) {
+  const isCTrader = connector.id === "ctrader";
+
+  return (
+    <div className="p-4 lg:p-8">
+      <SpecialConnectorHeader
+        connector={connector}
+        copy={
+          isCTrader
+            ? "cTrader connects through cTrader Open API using its OAuth account authorization flow. It is a native broker integration, not an MCP server."
+            : "MetaTrader 5 connects through the trading integration managed by the agent backend. It is a native broker integration, not an MCP server."
+        }
+      />
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <Panel>
+          <h2 className="font-display text-lg font-semibold">Native connection</h2>
+          <p className="mt-1 text-sm leading-relaxed text-fog">
+            {isCTrader
+              ? "The backend must complete the cTrader OAuth redirect, exchange the authorization code for an access token, and associate the selected trading account with this workspace. No MCP URL, transport, or generic bearer-token form is used."
+              : "The backend must manage the MT5 terminal or broker connection and report its health here. No MCP URL, transport, or generic bearer-token form is used."}
+          </p>
+          <div className="mt-5 rounded-md border border-line bg-ink2 p-4">
+            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-mute">Connection status</p>
+            <p className="mt-2 text-sm text-fog">{connector.connected ? "Connected" : "Not connected"}</p>
+          </div>
+          {connector.docs_url && (
+            <a
+              href={connector.docs_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-5 inline-block rounded-md border border-line px-4 py-2.5 text-sm text-white hover:bg-ink2"
+            >
+              {isCTrader ? "Open cTrader API docs ↗" : "Open MT5 docs ↗"}
+            </a>
+          )}
+        </Panel>
+
+        <Panel>
+          <h2 className="font-display text-lg font-semibold">Permissions</h2>
+          <ul className="mt-3 space-y-3 text-sm text-fog">
+            {connector.scopes.map((scope) => (
+              <li key={scope.key} className="border-l-2 border-line pl-3">
+                <p className="text-white">{scope.label}</p>
+                <p className="text-fog">{scope.detail}</p>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      </div>
+    </div>
+  );
+}
 
 function SpecialConnectorHeader({ connector, copy }: SpecialConnectorProps & { copy: string }) {
   return (

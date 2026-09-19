@@ -8,6 +8,8 @@ export type LogLevel = "info" | "warn" | "error" | "done";
 
 export type McpTransport = "stdio" | "sse" | "http";
 
+export type ConnectorKind = "mcp" | "native";
+
 export type ConnectionStatus = "disconnected" | "connected" | "degraded";
 
 /** Connector ids are catalogue rows in the database, so this is a string. */
@@ -26,7 +28,8 @@ export type CatalogConnector = {
   category: string;
   tagline: string;
   description: string;
-  default_transport: McpTransport;
+  kind: ConnectorKind;
+  default_transport: McpTransport | null;
   default_server_url: string | null;
   docs_url: string | null;
   scopes: ConnectorScope[];
@@ -56,7 +59,7 @@ export type ConnectorView = CatalogConnector & {
   connection: McpConnection | null;
   connected: boolean;
   status: ConnectionStatus;
-  transport: McpTransport;
+  transport: McpTransport | null;
   scopes: ConnectorScope[];
 };
 

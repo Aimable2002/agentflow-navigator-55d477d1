@@ -81,7 +81,7 @@ function Connectors() {
                     </div>
                     <div>
                       <dt className="text-mute">Transport</dt>
-                      <dd className="mt-1 text-fog">{c.transport}</dd>
+                      <dd className="mt-1 text-fog">{c.kind === "mcp" ? c.transport ?? "—" : "Native API"}</dd>
                     </div>
                     <div>
                       <dt className="text-mute">Last sync</dt>

@@ -111,6 +111,7 @@ export function useConnectors() {
   const { user } = useSession();
   const catalog = useConnectorCatalog();
   const telegram = useTelegramStatus();
+  const whatsapp = useWhatsAppStatus();
 
   const connections = useQuery({
     queryKey: ["mcp-connections", user?.id],
@@ -124,8 +125,10 @@ export function useConnectors() {
     const rows = catalog.data ?? [];
     const byId = new Map((connections.data ?? []).map((c) => [c.connector_id, c]));
     return rows.map((c) => {
-      const connection = byId.get(c.id) ?? null;
-      const nativeConnected = c.id === "telegram" && telegram.data?.connected === true;
+      const connection = c.kind === "mcp" ? byId.get(c.id) ?? null : null;
+      const nativeConnected =
+        (c.id === "telegram" && telegram.data?.connected === true) ||
+        (c.id === "whatsapp" && whatsapp.data?.connected === true);
       const connected = nativeConnected || (!!connection && connection.status !== "disconnected");
       return {
         ...c,
@@ -136,7 +139,7 @@ export function useConnectors() {
         scopes: (connection?.scopes?.length ? connection.scopes : c.scopes) as ConnectorScope[],
       };
     });
-  }, [catalog.data, connections.data, telegram.data]);
+  }, [catalog.data, connections.data, telegram.data, whatsapp.data]);
 
   return {
     data,
