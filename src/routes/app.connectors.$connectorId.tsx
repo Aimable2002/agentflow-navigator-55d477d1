@@ -70,8 +70,6 @@ function ConnectorDetail() {
   const [serverUrl, setServerUrl] = useState("");
   const [authHeader, setAuthHeader] = useState("Authorization");
   const [authToken, setAuthToken] = useState("");
-  const [command, setCommand] = useState("");
-  const [args, setArgs] = useState("");
   const [accountLabel, setAccountLabel] = useState("");
   const [scopes, setScopes] = useState<ConnectorScope[]>([]);
 
@@ -82,8 +80,6 @@ function ConnectorDetail() {
     setTransport(stored === "stdio" ? "http" : stored);
     setServerUrl(c?.server_url ?? connector.default_server_url ?? "");
     setAuthHeader(c?.auth_header_name ?? "Authorization");
-    setCommand(c?.command ?? "");
-    setArgs((c?.args ?? []).join(" "));
     setAccountLabel(c?.account_label ?? "");
     setScopes(connector.scopes);
   }, [connector]);
