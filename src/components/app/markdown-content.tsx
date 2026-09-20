@@ -2,6 +2,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { cleanAgentText } from "@/lib/format";
 
 const markdownComponents = {
   h1: ({ children }: { children?: React.ReactNode }) => (
@@ -80,7 +81,7 @@ export function MarkdownContent({ content, className }: { content: string; class
         rehypePlugins={[rehypeHighlight]}
         components={markdownComponents}
       >
-        {content}
+        {cleanAgentText(content)}
       </ReactMarkdown>
     </div>
   );
