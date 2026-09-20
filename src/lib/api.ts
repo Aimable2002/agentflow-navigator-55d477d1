@@ -42,6 +42,7 @@ import {
   whatsappSendTestFn,
   whatsappStatusFn,
 } from "@/lib/pink.functions";
+import { cleanAgentText } from "@/lib/format";
 
 export { PINK_API_URL };
 
@@ -124,7 +125,7 @@ export async function getJob(jobId: string) {
   const result = await getJobFn({ data: { jobId } });
   const body = unwrap<Record<string, unknown>>(result as ProxyResult);
   const payload = record(body["data"] ?? body["result"]);
-  const message = [
+  const rawMessage = [
     payload["final_message"],
     payload["message"],
     payload["content"],
@@ -132,6 +133,7 @@ export async function getJob(jobId: string) {
     body["message"],
     body["content"],
   ].find((value): value is string => typeof value === "string" && value.length > 0);
+  const message = rawMessage ? cleanAgentText(rawMessage) : undefined;
   const data: JobStatusResponse["data"] = {
     ...(message ? { final_message: message } : {}),
     ...(payload["tier"] === "small" || payload["tier"] === "medium" || payload["tier"] === "best"

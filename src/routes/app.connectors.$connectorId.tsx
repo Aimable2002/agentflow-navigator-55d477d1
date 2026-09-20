@@ -77,7 +77,7 @@ function ConnectorDetail() {
     if (!connector) return;
     const c = connector.connection;
     const stored = c?.transport ?? connector.default_transport;
-    setTransport(stored === "stdio" ? "http" : stored);
+    setTransport(!stored || stored === "stdio" ? "http" : stored);
     setServerUrl(c?.server_url ?? connector.default_server_url ?? "");
     setAuthHeader(c?.auth_header_name ?? "Authorization");
     setAccountLabel(c?.account_label ?? "");

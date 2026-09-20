@@ -35,6 +35,7 @@ import {
   type TradingAgentConfig,
 } from "@/lib/api";
 import { useSession } from "@/lib/auth";
+import { cleanAgentText } from "@/lib/format";
 import type {
   ApiKey,
   CatalogConnector,
@@ -362,7 +363,7 @@ export function useSendMessage() {
         prompt: input.prompt,
         messages: history.map((m) => ({
           role: m.role === "agent" ? ("assistant" as const) : (m.role as "user" | "system"),
-          content: m.content,
+          content: m.role === "agent" ? cleanAgentText(m.content) : m.content,
         })),
         connectors: input.connectors,
         mode: input.mode,

@@ -48,3 +48,21 @@ export function planLabel(plan: string | undefined | null): string {
   if (!plan) return "Free";
   return plan.charAt(0).toUpperCase() + plan.slice(1);
 }
+
+/**
+ * Removes Python/MCP result representations accidentally appended by the
+ * agent backend. These are execution details, not part of the assistant's
+ * answer, and may contain an entire connector response.
+ */
+export function cleanAgentText(value: string): string {
+  const markers = [
+    /(?:^|\n)\s*meta=None\s+content=\[TextContent\(/m,
+    /(?:^|\n)\s*content=\[TextContent\([^\n]*type=['"]text['"]/m,
+  ];
+  let end = value.length;
+  for (const marker of markers) {
+    const match = marker.exec(value);
+    if (match && match.index < end) end = match.index;
+  }
+  return value.slice(0, end).trim();
+}
