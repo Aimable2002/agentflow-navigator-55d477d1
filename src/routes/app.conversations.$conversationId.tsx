@@ -107,8 +107,7 @@ function ConversationDetail() {
                     key={`${s.connector}${s.action}${i}`}
                     className="flex items-center gap-2 font-mono text-xs text-fog"
                   >
-                    <span className="size-1.5 rounded-full bg-mint" /> {s.connector} · {s.action}{" "}
-                    <span className="text-mute">{s.detail}</span>
+                    <span className="size-1.5 rounded-full bg-mint" /> {s.connector} · {s.action}
                   </div>
                 ))}
               </div>
