@@ -201,3 +201,12 @@ export const tradingAgentGenerateFn = createServerFn({ method: "POST" }).handler
 export const tradingAgentSignalsFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend(`${TRADING_SERVICE}/signals`, { method: "GET" }),
 );
+
+/* ------------------------------------------------------- mt5 ea execution */
+
+/** GET /v1/ea/orders — pending trade orders for the signed-in user. */
+export const eaOrdersFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { limit?: number }) => input)
+  .handler(({ data }) =>
+    callBackend(`/v1/ea/orders?limit=${Math.min(Math.max(data.limit ?? 50, 1), 200)}`, { method: "GET" }),
+  );

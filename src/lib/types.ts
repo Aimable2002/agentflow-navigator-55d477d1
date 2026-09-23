@@ -176,3 +176,56 @@ export type NotificationPreferences = {
   channel_email: boolean;
   channel_telegram: boolean;
 };
+
+export type TradeOrderStatus = "pending" | "claimed" | "executed" | "rejected" | "expired" | "failed";
+
+export type TradeExecutionStatus = "executed" | "rejected" | "failed" | "partial";
+
+export type TradeExecution = {
+  id: string;
+  order_id: string;
+  user_id: string;
+  mt5_account_id: string;
+  broker_ticket: string | null;
+  status: TradeExecutionStatus;
+  requested_price: number | null;
+  fill_price: number | null;
+  volume: number | null;
+  error_code: string | null;
+  error_message: string | null;
+  raw_response: Record<string, unknown>;
+  executed_at: string | null;
+  created_at: string;
+};
+
+export type TradeOrder = {
+  id: string;
+  signal_id: string;
+  user_id: string;
+  symbol: string;
+  signal_type: "forex" | "binary_option";
+  direction: "buy" | "sell" | "call" | "put";
+  order_type: "market" | "limit" | "stop";
+  entry: number | null;
+  stop_loss: number | null;
+  take_profits: number[];
+  expiry_minutes: number | null;
+  status: TradeOrderStatus;
+  claimed_by: string | null;
+  claimed_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A trade order joined with its execution receipt and originating signal. */
+export type TradeOrderRow = TradeOrder & {
+  execution: TradeExecution | null;
+  signal: {
+    id: string;
+    channel: string | null;
+    raw_text: string | null;
+    model_reasoning: string | null;
+    created_at: string | null;
+  } | null;
+};
