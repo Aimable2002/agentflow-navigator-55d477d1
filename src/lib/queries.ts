@@ -749,3 +749,105 @@ export function useTradingAgentControls() {
     }),
   };
 }
+
+/* ------------------------------------------------- mt5 ea execution */
+
+import { eaPendingOrders } from "@/lib/api";
+import type { TradeExecution, TradeOrder, TradeOrderRow } from "@/lib/types";
+
+function first<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function toOrderRow(row: Record<string, unknown>): TradeOrderRow {
+  const execution = first(row["trade_executions"] as TradeExecution | TradeExecution[] | null);
+  const signal = first(row["signals"] as TradeOrderRow["signal"] | TradeOrderRow["signal"][] | null);
+  const takeProfits = Array.isArray(row["take_profits"]) ? (row["take_profits"] as number[]) : [];
+  return {
+    ...(row as unknown as TradeOrder),
+    take_profits: takeProfits,
+    execution: execution ?? null,
+    signal: signal ?? null,
+  };
+}
+
+/**
+ * Pending orders straight from the backend (service-role read), which is the
+ * authoritative queue the EA polls.
+ */
+export function useEaPendingOrders() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["ea-pending-orders", user?.id],
+    enabled: !!user,
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
+    queryFn: () => eaPendingOrders(200),
+  });
+}
+
+/**
+ * Full order history with execution receipts and the originating signal, read
+ * from the database under the user's own row-level policies. The backend has no
+ * history endpoint yet (see docs/EA_FRONTEND_INTEGRATION.md).
+ */
+export function useTradeOrders() {
+  const { user } = useSession();
+  return useQuery({
+    queryKey: ["trade-orders", user?.id],
+    enabled: !!user,
+    refetchOnWindowFocus: true,
+    queryFn: async (): Promise<TradeOrderRow[]> => {
+      const { data, error } = await supabase
+        .from("trade_orders")
+        .select(
+          "*, trade_executions(*), signals(id, channel, raw_text, model_reasoning, created_at)",
+        )
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false })
+        .limit(300);
+      if (error) throw new Error(error.message);
+      return (data ?? []).map((row) => toOrderRow(row as Record<string, unknown>));
+    },
+  });
+}
+
+/**
+ * Realtime notifications for trade_orders. Payloads are treated as a nudge
+ * only: every event refetches the authoritative queries. Falls back to the
+ * queries' own polling when the channel cannot be established.
+ */
+export function useTradeOrdersRealtime() {
+  const qc = useQueryClient();
+  const { user } = useSession();
+  const [state, setState] = useState<"connecting" | "live" | "fallback">("connecting");
+
+  useEffect(() => {
+    if (!user) return;
+    const refresh = () => {
+      void qc.invalidateQueries({ queryKey: ["ea-pending-orders"] });
+      void qc.invalidateQueries({ queryKey: ["trade-orders"] });
+    };
+    const channel = supabase
+      .channel(`trade-orders-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "trade_orders", filter: `user_id=eq.${user.id}` },
+        refresh,
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setState("live");
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setState("fallback");
+      });
+
+    const onOnline = () => refresh();
+    window.addEventListener("online", onOnline);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      void supabase.removeChannel(channel);
+    };
+  }, [qc, user]);
+
+  return state;
+}
