@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/app/app-shell";
 import { Panel } from "@/components/pink/primitives";
-import { useEaPendingOrders, useSignalMonitor, useTradingAgent } from "@/lib/queries";
+import { useSignalMonitor, useTradingAgent } from "@/lib/queries";
 
 export const Route = createFileRoute("/app/agent-services/")({
   head: () => ({
@@ -25,7 +25,6 @@ export const Route = createFileRoute("/app/agent-services/")({
 function AgentServices() {
   const telegram = useSignalMonitor();
   const trading = useTradingAgent();
-  const ea = useEaPendingOrders();
 
   const telegramStatus = telegram.data?.status;
   const telegramConfigured = (telegram.data?.config?.monitored_chats?.length ?? 0) > 0;
@@ -71,12 +70,12 @@ function AgentServices() {
       />
 
       <div className="space-y-6 p-4 lg:p-8">
-        {(telegram.error || trading.error || ea.error) && (
+        {(telegram.error || trading.error) && (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-white/90">
-            {(telegram.error ?? trading.error ?? ea.error)?.message}
+            {(telegram.error ?? trading.error)?.message}
           </p>
         )}
-        {(telegram.isLoading || trading.isLoading || ea.isLoading) && (
+        {(telegram.isLoading || trading.isLoading) && (
           <p className="text-sm text-mute">Loading services…</p>
         )}
 
@@ -122,41 +121,6 @@ function AgentServices() {
 
             <Link
               to="/app/agent-services/telegram-signal-monitor"
-              className="mt-4 inline-block rounded-md border border-line px-3 py-2 text-sm text-white hover:bg-ink2"
-            >
-              Open
-            </Link>
-          </Panel>
-
-          <Panel>
-            <div className="flex items-center gap-3">
-              <span className="grid size-9 place-items-center rounded-md border border-line bg-ink2 font-mono text-xs text-fog">
-                EA
-              </span>
-              <div>
-                <h2 className="font-display text-base font-semibold">MT5 EA Execution</h2>
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">
-                  order dispatch
-                </p>
-              </div>
-              <span className="ml-auto font-mono text-[11px] text-amber">Setup required</span>
-            </div>
-            <p className="mt-3 text-sm text-fog">
-              Connect an MT5 installation and inspect broker receipts without treating signals as
-              fills.
-            </p>
-            <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 font-mono text-[11px]">
-              <div>
-                <dt className="text-mute">Pending queue</dt>
-                <dd className="mt-1 text-fog">{ea.data?.orders.length ?? 0}</dd>
-              </div>
-              <div>
-                <dt className="text-mute">Download</dt>
-                <dd className="mt-1 text-amber">Configure URL</dd>
-              </div>
-            </dl>
-            <Link
-              to="/app/agent-services/mt5-ea"
               className="mt-4 inline-block rounded-md border border-line px-3 py-2 text-sm text-white hover:bg-ink2"
             >
               Open
