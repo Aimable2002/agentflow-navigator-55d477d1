@@ -392,3 +392,12 @@ export const tradingAgentGenerate = async () =>
 
 export const tradingAgentSignals = async () =>
   unwrap<{ signals: TradingSignal[] }>((await tradingAgentSignalsFn()) as ProxyResult);
+
+/* ------------------------------------------------- mt5 ea execution */
+
+import { eaOrdersFn } from "@/lib/pink.functions";
+import type { TradeOrder } from "@/lib/types";
+
+/** GET /v1/ea/orders — orders still waiting for an EA to claim them. */
+export const eaPendingOrders = async (limit = 50) =>
+  unwrap<{ orders: TradeOrder[] }>((await eaOrdersFn({ data: { limit } })) as ProxyResult);
