@@ -31,7 +31,7 @@ const primaryNav = [
   { to: "/app/conversations", label: "Conversations", icon: ListTree },
   { to: "/app/tasks", label: "Tasks", icon: Activity },
   { to: "/app/connectors", label: "Connectors", icon: Plug },
-  { to: "/app/agent-services", label: "Agent services", icon: Radar },
+  { to: "/app/agent-services", label: "Agent services", icon: Radar, exact: true },
   { to: "/app/agent-services/mt5-ea", label: "MT5 EA execution", icon: ServerCog },
 ] as const;
 
