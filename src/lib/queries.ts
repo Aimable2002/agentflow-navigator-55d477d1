@@ -77,7 +77,9 @@ export function useProfile() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async () =>
-      assertOk(await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle()) as Profile | null,
+      assertOk(
+        await supabase.from("profiles").select("*").eq("user_id", user!.id).maybeSingle(),
+      ) as Profile | null,
   });
 }
 
@@ -101,7 +103,11 @@ export function useConnectorCatalog() {
     queryFn: async () =>
       (
         (assertOk(
-          await supabase.from("connector_catalog").select("*").eq("is_active", true).order("sort_order"),
+          await supabase
+            .from("connector_catalog")
+            .select("*")
+            .eq("is_active", true)
+            .order("sort_order"),
         ) ?? []) as CatalogConnector[]
       ).filter((connector) => !disabledConnectorIds.has(connector.id)),
   });
@@ -129,7 +135,7 @@ export function useConnectors() {
       // Treat missing/null kind values from databases that predate migration
       // 006 as MCP so existing GitHub and other saved connections continue to
       // appear while the catalogue migration is rolled out.
-      const connection = c.kind !== "native" ? byId.get(c.id) ?? null : null;
+      const connection = c.kind !== "native" ? (byId.get(c.id) ?? null) : null;
       const nativeConnected =
         (c.id === "telegram" && telegram.data?.connected === true) ||
         (c.id === "whatsapp" && whatsapp.data?.connected === true);
@@ -138,7 +144,7 @@ export function useConnectors() {
         ...c,
         connection,
         connected,
-        status: nativeConnected ? "connected" : connection?.status ?? "disconnected",
+        status: nativeConnected ? "connected" : (connection?.status ?? "disconnected"),
         transport: connection?.transport ?? c.default_transport,
         scopes: (connection?.scopes?.length ? connection.scopes : c.scopes) as ConnectorScope[],
       };
@@ -189,7 +195,9 @@ export function useSaveConnection() {
         last_sync_at: new Date().toISOString(),
         ...(input.auth_token ? { auth_token: input.auth_token } : {}),
       };
-      const res = await supabase.from("mcp_connections").upsert(row, { onConflict: "user_id,connector_id" });
+      const res = await supabase
+        .from("mcp_connections")
+        .upsert(row, { onConflict: "user_id,connector_id" });
       if (res.error) throw new Error(res.error.message);
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["mcp-connections"] }),
@@ -261,7 +269,11 @@ export function useTasks() {
     refetchInterval: 5000,
     queryFn: async () =>
       (assertOk(
-        await supabase.from("tasks").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        await supabase
+          .from("tasks")
+          .select("*")
+          .eq("user_id", user!.id)
+          .order("created_at", { ascending: false }),
       ) ?? []) as Task[],
   });
 
@@ -275,9 +287,15 @@ export function useTask(taskId: string) {
     enabled: !!user && !!taskId,
     refetchInterval: 5000,
     queryFn: async () => {
-      const task = assertOk(await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle()) as Task | null;
+      const task = assertOk(
+        await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle(),
+      ) as Task | null;
       const logs = (assertOk(
-        await supabase.from("task_logs").select("*").eq("task_id", taskId).order("created_at", { ascending: true }),
+        await supabase
+          .from("task_logs")
+          .select("*")
+          .eq("task_id", taskId)
+          .order("created_at", { ascending: true }),
       ) ?? []) as TaskLog[];
       return { task, logs };
     },
@@ -295,7 +313,9 @@ export function useCancelTask() {
         .update({ status: "cancelled", finished_at: new Date().toISOString() })
         .eq("id", task.id);
       if (res.error) throw new Error(res.error.message);
-      await supabase.from("task_logs").insert({ task_id: task.id, level: "warn", message: "Cancelled by user." });
+      await supabase
+        .from("task_logs")
+        .insert({ task_id: task.id, level: "warn", message: "Cancelled by user." });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["task"] });
@@ -379,7 +399,8 @@ export function useSendMessage() {
             title: input.prompt.slice(0, 70),
             connector_id: input.connectors[0] ?? null,
             mode: input.mode,
-            tier: typeof queued.plan === "object" && queued.plan?.tier ? queued.plan.tier : "medium",
+            tier:
+              typeof queued.plan === "object" && queued.plan?.tier ? queued.plan.tier : "medium",
             status: "running",
             progress: 10,
             started_at: new Date().toISOString(),
@@ -402,7 +423,9 @@ export function useSendMessage() {
 export function useJobWatcher() {
   const { user } = useSession();
   const qc = useQueryClient();
-  const [watching, setWatching] = useState<{ jobId: string; taskId: string; conversationId: string }[]>([]);
+  const [watching, setWatching] = useState<
+    { jobId: string; taskId: string; conversationId: string }[]
+  >([]);
   const [failure, setFailure] = useState<string | null>(null);
 
   const watch = useCallback((entry: { jobId: string; taskId: string; conversationId: string }) => {
@@ -553,7 +576,10 @@ export function useRevokeApiKey() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await supabase.from("api_keys").update({ revoked_at: new Date().toISOString() }).eq("id", id);
+      const res = await supabase
+        .from("api_keys")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", id);
       if (res.error) throw new Error(res.error.message);
     },
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["api-keys"] }),
@@ -569,7 +595,11 @@ export function useInvoices() {
     enabled: !!user,
     queryFn: async () =>
       (assertOk(
-        await supabase.from("invoices").select("*").eq("user_id", user!.id).order("issued_at", { ascending: false }),
+        await supabase
+          .from("invoices")
+          .select("*")
+          .eq("user_id", user!.id)
+          .order("issued_at", { ascending: false }),
       ) ?? []) as Invoice[],
   });
 }
@@ -583,7 +613,11 @@ export function useNotificationPreferences() {
     enabled: !!user,
     queryFn: async () =>
       assertOk(
-        await supabase.from("notification_preferences").select("*").eq("user_id", user!.id).maybeSingle(),
+        await supabase
+          .from("notification_preferences")
+          .select("*")
+          .eq("user_id", user!.id)
+          .maybeSingle(),
       ) as NotificationPreferences | null,
   });
 }
@@ -622,8 +656,14 @@ export function useTelegramLogin() {
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["telegram-status"] });
   return {
     start: useMutation({ mutationFn: (phone: string) => telegramStart(phone) }),
-    verify: useMutation({ mutationFn: (code: string) => telegramVerify(code), onSuccess: invalidate }),
-    submitPassword: useMutation({ mutationFn: (password: string) => telegramTwoFa(password), onSuccess: invalidate }),
+    verify: useMutation({
+      mutationFn: (code: string) => telegramVerify(code),
+      onSuccess: invalidate,
+    }),
+    submitPassword: useMutation({
+      mutationFn: (password: string) => telegramTwoFa(password),
+      onSuccess: invalidate,
+    }),
     disconnect: useMutation({ mutationFn: () => telegramDisconnect(), onSuccess: invalidate }),
   };
 }
@@ -706,7 +746,8 @@ export function useSignalMonitorControls() {
   const invalidate = () => void qc.invalidateQueries({ queryKey: ["signal-monitor"] });
   return {
     save: useMutation({
-      mutationFn: (config: { monitored_chats: string[]; alert_chat: string }) => signalMonitorSave(config),
+      mutationFn: (config: { monitored_chats: string[]; alert_chat: string }) =>
+        signalMonitorSave(config),
       onSuccess: invalidate,
     }),
     activate: useMutation({ mutationFn: () => signalMonitorActivate(), onSuccess: invalidate }),
@@ -762,7 +803,9 @@ function first<T>(value: T | T[] | null | undefined): T | null {
 
 function toOrderRow(row: Record<string, unknown>): TradeOrderRow {
   const execution = first(row["trade_executions"] as TradeExecution | TradeExecution[] | null);
-  const signal = first(row["signals"] as TradeOrderRow["signal"] | TradeOrderRow["signal"][] | null);
+  const signal = first(
+    row["signals"] as TradeOrderRow["signal"] | TradeOrderRow["signal"][] | null,
+  );
   const takeProfits = Array.isArray(row["take_profits"]) ? (row["take_profits"] as number[]) : [];
   return {
     ...(row as unknown as TradeOrder),
@@ -782,6 +825,7 @@ export function useEaPendingOrders() {
     queryKey: ["ea-pending-orders", user?.id],
     enabled: !!user,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     refetchInterval: 60_000,
     queryFn: () => eaPendingOrders(200),
   });
@@ -837,8 +881,13 @@ export function useTradeOrdersRealtime() {
         refresh,
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") setState("live");
-        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setState("fallback");
+        if (status === "SUBSCRIBED") {
+          setState("live");
+          refresh();
+        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setState("fallback");
+          refresh();
+        }
       });
 
     const onOnline = () => refresh();

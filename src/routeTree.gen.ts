@@ -33,6 +33,7 @@ import { Route as AppChatRouteImport } from './routes/app.chat'
 import { Route as AppUsageRouteImport } from './routes/app.usage'
 import { Route as DocsSlugRouteImport } from './routes/docs.$slug'
 import { Route as AppAgentServicesIndexRouteImport } from './routes/app.agent-services.index'
+import { Route as AppAgentServicesMt5EaRouteImport } from './routes/app.agent-services.mt5-ea'
 import { Route as AppAgentServicesTelegramSignalMonitorRouteImport } from './routes/app.agent-services.telegram-signal-monitor'
 import { Route as AppAgentServicesTradingAgentRouteImport } from './routes/app.agent-services.trading-agent'
 import { Route as AppConnectorsIndexRouteImport } from './routes/app.connectors.index'
@@ -165,6 +166,11 @@ const AppAgentServicesIndexRoute = AppAgentServicesIndexRouteImport.update({
   path: '/agent-services/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAgentServicesMt5EaRoute = AppAgentServicesMt5EaRouteImport.update({
+  id: '/agent-services/mt5-ea',
+  path: '/agent-services/mt5-ea',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAgentServicesTelegramSignalMonitorRoute =
   AppAgentServicesTelegramSignalMonitorRouteImport.update({
     id: '/agent-services/telegram-signal-monitor',
@@ -250,6 +256,7 @@ export interface FileRoutesByFullPath {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/app/agent-services/mt5-ea': typeof AppAgentServicesMt5EaRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app': typeof AppIndexRoute
+  '/app/agent-services/mt5-ea': typeof AppAgentServicesMt5EaRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/app/usage': typeof AppUsageRoute
   '/docs/$slug': typeof DocsSlugRoute
   '/app/': typeof AppIndexRoute
+  '/app/agent-services/mt5-ea': typeof AppAgentServicesMt5EaRoute
   '/app/agent-services/telegram-signal-monitor': typeof AppAgentServicesTelegramSignalMonitorRoute
   '/app/agent-services/trading-agent': typeof AppAgentServicesTradingAgentRoute
   '/app/connectors/$connectorId': typeof AppConnectorsConnectorIdRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app/'
+    | '/app/agent-services/mt5-ea'
     | '/app/agent-services/telegram-signal-monitor'
     | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app'
+    | '/app/agent-services/mt5-ea'
     | '/app/agent-services/telegram-signal-monitor'
     | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/app/usage'
     | '/docs/$slug'
     | '/app/'
+    | '/app/agent-services/mt5-ea'
     | '/app/agent-services/telegram-signal-monitor'
     | '/app/agent-services/trading-agent'
     | '/app/connectors/$connectorId'
@@ -641,6 +653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentServicesIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/agent-services/mt5-ea': {
+      id: '/app/agent-services/mt5-ea'
+      path: '/agent-services/mt5-ea'
+      fullPath: '/app/agent-services/mt5-ea'
+      preLoaderRoute: typeof AppAgentServicesMt5EaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/agent-services/telegram-signal-monitor': {
       id: '/app/agent-services/telegram-signal-monitor'
       path: '/agent-services/telegram-signal-monitor'
@@ -726,6 +745,7 @@ interface AppRouteChildren {
   AppChatRoute: typeof AppChatRoute
   AppUsageRoute: typeof AppUsageRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAgentServicesMt5EaRoute: typeof AppAgentServicesMt5EaRoute
   AppAgentServicesTelegramSignalMonitorRoute: typeof AppAgentServicesTelegramSignalMonitorRoute
   AppAgentServicesTradingAgentRoute: typeof AppAgentServicesTradingAgentRoute
   AppConnectorsConnectorIdRoute: typeof AppConnectorsConnectorIdRoute
@@ -745,6 +765,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppChatRoute: AppChatRoute,
   AppUsageRoute: AppUsageRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAgentServicesMt5EaRoute: AppAgentServicesMt5EaRoute,
   AppAgentServicesTelegramSignalMonitorRoute:
     AppAgentServicesTelegramSignalMonitorRoute,
   AppAgentServicesTradingAgentRoute: AppAgentServicesTradingAgentRoute,

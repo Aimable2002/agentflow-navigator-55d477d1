@@ -172,7 +172,8 @@ export type TelegramStatus = {
 
 export type TelegramStep = { step: "code" | "password" | "ready" };
 
-export const telegramStatus = async () => unwrap<TelegramStatus>((await telegramStatusFn()) as ProxyResult);
+export const telegramStatus = async () =>
+  unwrap<TelegramStatus>((await telegramStatusFn()) as ProxyResult);
 
 export const telegramStart = async (phone: string) =>
   unwrap<TelegramStep>((await telegramStartFn({ data: { phone } })) as ProxyResult);
@@ -188,23 +189,31 @@ export const telegramDisconnect = async () =>
 
 /* ------------------------------------------------------------- whatsapp */
 
-export type WhatsAppStatus = { connected: boolean; phone_number_id?: string; alert_recipient?: string };
+export type WhatsAppStatus = {
+  connected: boolean;
+  phone_number_id?: string;
+  alert_recipient?: string;
+};
 
-export const whatsappStatus = async () => unwrap<WhatsAppStatus>((await whatsappStatusFn()) as ProxyResult);
+export const whatsappStatus = async () =>
+  unwrap<WhatsAppStatus>((await whatsappStatusFn()) as ProxyResult);
 
 export const whatsappSaveCredentials = async (input: {
   access_token: string;
   phone_number_id: string;
   business_account_id: string;
   alert_recipient: string;
-}) => unwrap<{ connected: boolean }>((await whatsappSaveCredentialsFn({ data: input })) as ProxyResult);
+}) =>
+  unwrap<{ connected: boolean }>((await whatsappSaveCredentialsFn({ data: input })) as ProxyResult);
 
 export const whatsappDisconnect = async () =>
   unwrap<{ connected: boolean }>((await whatsappDisconnectFn()) as ProxyResult);
 
 export const whatsappSendTest = async (message?: string) =>
   unwrap<{ result: string }>(
-    (await whatsappSendTestFn({ data: { message: message ?? "This is a test alert." } })) as ProxyResult,
+    (await whatsappSendTestFn({
+      data: { message: message ?? "This is a test alert." },
+    })) as ProxyResult,
   );
 
 /* ------------------------------------------------- agent services */
@@ -253,7 +262,10 @@ export type TelegramSignal = {
 };
 
 function normalizeTelegramSignal(value: unknown, index: number): TelegramSignal {
-  const row = (value && typeof value === "object" && !Array.isArray(value) ? value : {}) as Record<string, unknown>;
+  const row = (value && typeof value === "object" && !Array.isArray(value) ? value : {}) as Record<
+    string,
+    unknown
+  >;
   const nested =
     row["normalized_signal"] &&
     typeof row["normalized_signal"] === "object" &&
@@ -280,7 +292,9 @@ function normalizeTelegramSignal(value: unknown, index: number): TelegramSignal 
     stop_loss: (row["stop_loss"] ?? nested["stop_loss"] ?? null) as number | null,
     expiry_minutes: (row["expiry_minutes"] ?? nested["expiry_minutes"] ?? null) as number | null,
     normalized_signal: nested,
-    parse_status: (row["parse_status"] ?? nested["parse_status"] ?? "pending") as TelegramParseStatus,
+    parse_status: (row["parse_status"] ??
+      nested["parse_status"] ??
+      "pending") as TelegramParseStatus,
     model_reasoning: (row["model_reasoning"] ?? nested["reasoning"] ?? null) as string | null,
     alerted: row["alerted"] === true,
     alert_error: (row["alert_error"] ?? null) as string | null,
@@ -395,9 +409,33 @@ export const tradingAgentSignals = async () =>
 
 /* ------------------------------------------------- mt5 ea execution */
 
-import { eaOrdersFn } from "@/lib/pink.functions";
-import type { TradeOrder } from "@/lib/types";
+import { eaClaimOrderFn, eaExecutionFn, eaOrdersFn } from "@/lib/pink.functions";
+import type { TradeExecution, TradeOrder } from "@/lib/types";
 
 /** GET /v1/ea/orders — orders still waiting for an EA to claim them. */
-export const eaPendingOrders = async (limit = 50) =>
-  unwrap<{ orders: TradeOrder[] }>((await eaOrdersFn({ data: { limit } })) as ProxyResult);
+export const eaPendingOrders = async (limit = 50, clientId?: string) =>
+  unwrap<{ orders: TradeOrder[] }>(
+    (await eaOrdersFn({ data: { limit, ...(clientId ? { clientId } : {}) } })) as ProxyResult,
+  );
+
+export type ExecutionReceiptInput = Omit<
+  TradeExecution,
+  "id" | "order_id" | "user_id" | "executed_at" | "created_at"
+>;
+
+/** POST /v1/ea/orders/{order_id}/claim — reserve an order for one installation. */
+export const eaClaimOrder = async (orderId: string, clientId: string) =>
+  unwrap<{ order: TradeOrder }>(
+    (await eaClaimOrderFn({ data: { orderId, clientId } })) as ProxyResult,
+  );
+
+/** POST /v1/ea/orders/{order_id}/execution — store the EA broker receipt. */
+export const eaReportExecution = async (orderId: string, receipt: ExecutionReceiptInput) =>
+  unwrap<{ execution: TradeExecution }>(
+    (await eaExecutionFn({
+      data: {
+        orderId,
+        receipt: receipt as unknown as Record<string, import("@/lib/pink.functions").Json>,
+      },
+    })) as ProxyResult,
+  );

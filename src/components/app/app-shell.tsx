@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Plug,
   Radar,
+  ServerCog,
   Settings,
   Bell,
   UserRound,
@@ -31,6 +32,7 @@ const primaryNav = [
   { to: "/app/tasks", label: "Tasks", icon: Activity },
   { to: "/app/connectors", label: "Connectors", icon: Plug },
   { to: "/app/agent-services", label: "Agent services", icon: Radar },
+  { to: "/app/agent-services/mt5-ea", label: "MT5 EA execution", icon: ServerCog },
 ] as const;
 
 const accountNav = [
@@ -86,7 +88,9 @@ function TaskActivityIndicator() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 border-line bg-ink2 p-0">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
-          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-mute">Live activity</span>
+          <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-mute">
+            Live activity
+          </span>
           <Link to="/app/tasks" className="font-mono text-[11px] text-fog hover:text-white">
             All tasks →
           </Link>
@@ -97,7 +101,11 @@ function TaskActivityIndicator() {
           )}
           {[...running, ...queued].map((t) => (
             <li key={t.id}>
-              <Link to="/app/tasks/$taskId" params={{ taskId: t.id }} className="block px-4 py-3 hover:bg-panel/60">
+              <Link
+                to="/app/tasks/$taskId"
+                params={{ taskId: t.id }}
+                className="block px-4 py-3 hover:bg-panel/60"
+              >
                 <div className="flex items-center gap-2">
                   <StatusPill status={t.status} />
                   <TierBadge tier={t.tier} className="ml-auto" />
@@ -154,7 +162,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="mt-6 px-3">
-          <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-mute">Account</p>
+          <p className="px-3 pb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-mute">
+            Account
+          </p>
           <nav className="space-y-1">
             {accountNav.map((n) => (
               <NavItem key={n.to} {...n} />
@@ -173,7 +183,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="mt-2">
               <Meter value={pct} tone={pct > 80 ? "pink" : "mute"} />
             </div>
-            <Link to="/app/billing" className="mt-2 inline-block font-mono text-[11px] text-pink hover:underline">
+            <Link
+              to="/app/billing"
+              className="mt-2 inline-block font-mono text-[11px] text-pink hover:underline"
+            >
               Upgrade for priority →
             </Link>
           </div>
@@ -182,8 +195,12 @@ export function AppShell({ children }: { children: ReactNode }) {
               {initials(user, profile?.full_name)}
             </span>
             <div className="min-w-0">
-              <p className="truncate text-xs text-white">{profile?.full_name ?? user?.email ?? "Your account"}</p>
-              <p className="truncate font-mono text-[10px] text-mute">{profile?.email ?? user?.email ?? ""}</p>
+              <p className="truncate text-xs text-white">
+                {profile?.full_name ?? user?.email ?? "Your account"}
+              </p>
+              <p className="truncate font-mono text-[10px] text-mute">
+                {profile?.email ?? user?.email ?? ""}
+              </p>
             </div>
             <button
               type="button"

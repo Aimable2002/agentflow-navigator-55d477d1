@@ -9,7 +9,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 
-export const PINK_API_URL = ((import.meta.env["VITE_PINK_API_URL"] as string | undefined) ?? "").replace(/\/$/, "");
+export const PINK_API_URL = (
+  (import.meta.env["VITE_PINK_API_URL"] as string | undefined) ?? ""
+).replace(/\/$/, "");
 
 export type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 
@@ -48,17 +50,29 @@ async function callBackend(path: string, init: RequestInit): Promise<ProxyResult
       /* keep the raw body */
     }
     if (response.status >= 500) {
-      message = "This isn't available from the agent backend yet — it returned a server error, so there is nothing to show.";
+      message =
+        "This isn't available from the agent backend yet — it returned a server error, so there is nothing to show.";
     }
     return { ok: false, status: response.status, message };
   }
 
-  return { ok: true, status: response.status, body: text ? (JSON.parse(text) as Record<string, Json>) : null };
+  return {
+    ok: true,
+    status: response.status,
+    body: text ? (JSON.parse(text) as Record<string, Json>) : null,
+  };
 }
 
 /** POST /v1/chat — queues an agent run and returns { job_id, status, plan }. */
 export const startChatFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { prompt: string; messages?: unknown[]; connectors?: string[]; mode?: "chat" | "agent" }) => input)
+  .inputValidator(
+    (input: {
+      prompt: string;
+      messages?: unknown[];
+      connectors?: string[];
+      mode?: "chat" | "agent";
+    }) => input,
+  )
   .handler(({ data }) =>
     callBackend("/v1/chat", {
       method: "POST",
@@ -74,12 +88,16 @@ export const startChatFn = createServerFn({ method: "POST" })
 /** GET /v1/chat/{job_id} — polls a queued run. */
 export const getJobFn = createServerFn({ method: "POST" })
   .inputValidator((input: { jobId: string }) => input)
-  .handler(({ data }) => callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}`, { method: "GET" }));
+  .handler(({ data }) =>
+    callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}`, { method: "GET" }),
+  );
 
 /** POST /v1/chat/{job_id}/cancel — requests cancellation of a queued run. */
 export const cancelJobFn = createServerFn({ method: "POST" })
   .inputValidator((input: { jobId: string }) => input)
-  .handler(({ data }) => callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}/cancel`, { method: "POST" }));
+  .handler(({ data }) =>
+    callBackend(`/v1/chat/${encodeURIComponent(data.jobId)}/cancel`, { method: "POST" }),
+  );
 
 /** GET /healthz — backend liveness. */
 export const healthFn = createServerFn({ method: "POST" }).handler(() =>
@@ -95,19 +113,28 @@ export const telegramStatusFn = createServerFn({ method: "POST" }).handler(() =>
 export const telegramStartFn = createServerFn({ method: "POST" })
   .inputValidator((input: { phone: string }) => input)
   .handler(({ data }) =>
-    callBackend("/v1/telegram/start", { method: "POST", body: JSON.stringify({ phone: data.phone }) }),
+    callBackend("/v1/telegram/start", {
+      method: "POST",
+      body: JSON.stringify({ phone: data.phone }),
+    }),
   );
 
 export const telegramVerifyFn = createServerFn({ method: "POST" })
   .inputValidator((input: { code: string }) => input)
   .handler(({ data }) =>
-    callBackend("/v1/telegram/verify", { method: "POST", body: JSON.stringify({ code: data.code }) }),
+    callBackend("/v1/telegram/verify", {
+      method: "POST",
+      body: JSON.stringify({ code: data.code }),
+    }),
   );
 
 export const telegramTwoFaFn = createServerFn({ method: "POST" })
   .inputValidator((input: { password: string }) => input)
   .handler(({ data }) =>
-    callBackend("/v1/telegram/2fa", { method: "POST", body: JSON.stringify({ password: data.password }) }),
+    callBackend("/v1/telegram/2fa", {
+      method: "POST",
+      body: JSON.stringify({ password: data.password }),
+    }),
   );
 
 export const telegramDisconnectFn = createServerFn({ method: "POST" }).handler(() =>
@@ -122,10 +149,16 @@ export const whatsappStatusFn = createServerFn({ method: "POST" }).handler(() =>
 
 export const whatsappSaveCredentialsFn = createServerFn({ method: "POST" })
   .inputValidator(
-    (input: { access_token: string; phone_number_id: string; business_account_id: string; alert_recipient: string }) =>
-      input,
+    (input: {
+      access_token: string;
+      phone_number_id: string;
+      business_account_id: string;
+      alert_recipient: string;
+    }) => input,
   )
-  .handler(({ data }) => callBackend("/v1/whatsapp/credentials", { method: "PUT", body: JSON.stringify(data) }));
+  .handler(({ data }) =>
+    callBackend("/v1/whatsapp/credentials", { method: "PUT", body: JSON.stringify(data) }),
+  );
 
 export const whatsappDisconnectFn = createServerFn({ method: "POST" }).handler(() =>
   callBackend("/v1/whatsapp/credentials", { method: "DELETE" }),
@@ -134,7 +167,10 @@ export const whatsappDisconnectFn = createServerFn({ method: "POST" }).handler((
 export const whatsappSendTestFn = createServerFn({ method: "POST" })
   .inputValidator((input: { message?: string }) => input)
   .handler(({ data }) =>
-    callBackend("/v1/whatsapp/test", { method: "POST", body: JSON.stringify({ message: data.message ?? "This is a test alert." }) }),
+    callBackend("/v1/whatsapp/test", {
+      method: "POST",
+      body: JSON.stringify({ message: data.message ?? "This is a test alert." }),
+    }),
   );
 
 /* ------------------------------------------------- agent services */
@@ -155,7 +191,9 @@ export const signalMonitorStatusFn = createServerFn({ method: "POST" }).handler(
 /** PUT the monitor's config. */
 export const signalMonitorSaveFn = createServerFn({ method: "POST" })
   .inputValidator((input: { monitored_chats: string[]; alert_chat: string }) => input)
-  .handler(({ data }) => callBackend(TELEGRAM_SERVICE, { method: "PUT", body: JSON.stringify(data) }));
+  .handler(({ data }) =>
+    callBackend(TELEGRAM_SERVICE, { method: "PUT", body: JSON.stringify(data) }),
+  );
 
 /** POST activate — 400 when no chats are selected. */
 export const signalMonitorActivateFn = createServerFn({ method: "POST" }).handler(() =>
@@ -179,8 +217,18 @@ export const tradingAgentStatusFn = createServerFn({ method: "POST" }).handler((
 
 /** PUT the trading agent config. */
 export const tradingAgentSaveFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { pair: string | null; timeframe: string | null; connector: "mt5" | "ctrader"; candle_tool: string; forecast_models: string[] }) => input)
-  .handler(({ data }) => callBackend(TRADING_SERVICE, { method: "PUT", body: JSON.stringify(data) }));
+  .inputValidator(
+    (input: {
+      pair: string | null;
+      timeframe: string | null;
+      connector: "mt5" | "ctrader";
+      candle_tool: string;
+      forecast_models: string[];
+    }) => input,
+  )
+  .handler(({ data }) =>
+    callBackend(TRADING_SERVICE, { method: "PUT", body: JSON.stringify(data) }),
+  );
 
 /** POST activate. */
 export const tradingAgentActivateFn = createServerFn({ method: "POST" }).handler(() =>
@@ -206,7 +254,32 @@ export const tradingAgentSignalsFn = createServerFn({ method: "POST" }).handler(
 
 /** GET /v1/ea/orders — pending trade orders for the signed-in user. */
 export const eaOrdersFn = createServerFn({ method: "POST" })
-  .inputValidator((input: { limit?: number }) => input)
+  .inputValidator((input: { limit?: number; clientId?: string }) => input)
   .handler(({ data }) =>
-    callBackend(`/v1/ea/orders?limit=${Math.min(Math.max(data.limit ?? 50, 1), 200)}`, { method: "GET" }),
+    callBackend(
+      `/v1/ea/orders?limit=${Math.min(Math.max(data.limit ?? 50, 1), 200)}${data.clientId ? `&client_id=${encodeURIComponent(data.clientId)}` : ""}`,
+      { method: "GET" },
+    ),
+  );
+
+/** POST /v1/ea/orders/{order_id}/claim — atomically reserves an order for an EA installation. */
+export const eaClaimOrderFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { orderId: string; clientId: string }) => input)
+  .handler(({ data }) =>
+    callBackend(
+      `/v1/ea/orders/${encodeURIComponent(data.orderId)}/claim?client_id=${encodeURIComponent(data.clientId)}`,
+      {
+        method: "POST",
+      },
+    ),
+  );
+
+/** POST /v1/ea/orders/{order_id}/execution — records the EA's broker receipt. */
+export const eaExecutionFn = createServerFn({ method: "POST" })
+  .inputValidator((input: { orderId: string; receipt: Record<string, Json> }) => input)
+  .handler(({ data }) =>
+    callBackend(`/v1/ea/orders/${encodeURIComponent(data.orderId)}/execution`, {
+      method: "POST",
+      body: JSON.stringify(data.receipt),
+    }),
   );
