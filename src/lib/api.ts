@@ -252,6 +252,41 @@ export type TelegramSignal = {
   alert_error?: string | null;
 };
 
+function normalizeTelegramSignal(value: unknown, index: number): TelegramSignal {
+  const row = (value && typeof value === "object" && !Array.isArray(value) ? value : {}) as Record<string, unknown>;
+  const nested =
+    row["normalized_signal"] &&
+    typeof row["normalized_signal"] === "object" &&
+    !Array.isArray(row["normalized_signal"])
+      ? (row["normalized_signal"] as Record<string, unknown>)
+      : {};
+  const takeProfits = Array.isArray(row["take_profits"])
+    ? row["take_profits"]
+    : Array.isArray(nested["take_profits"])
+      ? nested["take_profits"]
+      : [];
+
+  return {
+    id: typeof row["id"] === "string" ? row["id"] : `signal-${index}`,
+    created_at: typeof row["created_at"] === "string" ? row["created_at"] : "",
+    source: "telegram",
+    channel: typeof row["channel"] === "string" ? row["channel"] : null,
+    raw_text: typeof row["raw_text"] === "string" ? row["raw_text"] : "",
+    signal_type: (row["signal_type"] ?? nested["signal_type"] ?? null) as TelegramSignalType | null,
+    symbol: (row["symbol"] ?? nested["symbol"] ?? null) as string | null,
+    direction: (row["direction"] ?? nested["direction"] ?? null) as TelegramDirection | null,
+    entry: (row["entry"] ?? nested["entry"] ?? null) as number | null,
+    take_profits: takeProfits as number[],
+    stop_loss: (row["stop_loss"] ?? nested["stop_loss"] ?? null) as number | null,
+    expiry_minutes: (row["expiry_minutes"] ?? nested["expiry_minutes"] ?? null) as number | null,
+    normalized_signal: nested,
+    parse_status: (row["parse_status"] ?? nested["parse_status"] ?? "pending") as TelegramParseStatus,
+    model_reasoning: (row["model_reasoning"] ?? nested["reasoning"] ?? null) as string | null,
+    alerted: row["alerted"] === true,
+    alert_error: (row["alert_error"] ?? null) as string | null,
+  };
+}
+
 export type SignalMonitorConfig = {
   monitored_chats: string[];
   alert_chat: string;
@@ -281,7 +316,11 @@ export const signalMonitorPause = async () =>
   unwrap<Record<string, unknown>>((await signalMonitorPauseFn()) as ProxyResult);
 
 export const signalMonitorSignals = async () =>
-  unwrap<{ signals: Signal[] }>((await signalMonitorSignalsFn()) as ProxyResult);
+  (async () => {
+    const body = unwrap<{ signals?: unknown }>((await signalMonitorSignalsFn()) as ProxyResult);
+    const rows = Array.isArray(body.signals) ? body.signals : [];
+    return { signals: rows.map(normalizeTelegramSignal) };
+  })();
 
 export type TradingConnector = "mt5" | "ctrader";
 
